@@ -35,3 +35,6 @@ Thumbs.db
 tmp/
 temp/
 *.tmp
+
+# Test files
+test-*.js
