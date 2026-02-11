@@ -1,0 +1,22 @@
+[Unit]
+Description=PA-Bot - Price Action Signal Bot for Binance Futures
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/pa-bot
+Environment="NODE_ENV=production"
+EnvironmentFile=/home/ubuntu/pa-bot/.env
+ExecStart=/usr/bin/node /home/ubuntu/pa-bot/src/index.js
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/pa-bot/output.log
+StandardError=append:/var/log/pa-bot/error.log
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
