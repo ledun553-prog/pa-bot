@@ -1,0 +1,29 @@
+{
+  "name": "pa-bot",
+  "version": "1.0.0",
+  "description": "Signal-only trading alert bot for Binance USDT-M futures focusing on Price Action + Volume",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/index.js"
+  },
+  "keywords": [
+    "binance",
+    "trading",
+    "signals",
+    "price-action",
+    "telegram"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "ws": "^8.18.0",
+    "node-telegram-bot-api": "^0.66.0",
+    "p-retry": "^6.2.1",
+    "better-sqlite3": "^11.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
