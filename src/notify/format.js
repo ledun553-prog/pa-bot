@@ -114,9 +114,30 @@ function formatSignalMessage(signal) {
   // Levels table (monospace)
   message += '```\n';
   message += `Entry:  ${formatNumber(levels.entry, 8)}\n`;
-  message += `SL:     ${formatNumber(levels.stopLoss, 8)}\n`;
-  message += `TP1:    ${formatNumber(levels.takeProfit1, 8)} (${formatNumber(levels.riskReward1, 1)}R)\n`;
-  message += `TP2:    ${formatNumber(levels.takeProfit2, 8)} (${formatNumber(levels.riskReward2, 1)}R)\n`;
+  message += `SL:     ${formatNumber(levels.stopLoss, 8)}`;
+  
+  // Add SL zone info if available
+  if (levels.slZone) {
+    message += ` (${levels.slZone.type})`;
+  }
+  message += '\n';
+  
+  // TP1
+  message += `TP1:    ${formatNumber(levels.takeProfit1, 8)} (${formatNumber(levels.riskReward1, 1)}R)`;
+  if (levels.tpZones && levels.tpZones[0]) {
+    message += ` [${levels.tpZones[0].type}]`;
+  }
+  message += '\n';
+  
+  // TP2 (if available)
+  if (levels.takeProfit2) {
+    message += `TP2:    ${formatNumber(levels.takeProfit2, 8)} (${formatNumber(levels.riskReward2, 1)}R)`;
+    if (levels.tpZones && levels.tpZones[1]) {
+      message += ` [${levels.tpZones[1].type}]`;
+    }
+    message += '\n';
+  }
+  
   message += '```\n\n';
 
   // Volume
