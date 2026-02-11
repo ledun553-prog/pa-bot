@@ -33,6 +33,40 @@ function getConfidenceLevel(score) {
 }
 
 /**
+ * Pattern translation map for Vietnamese
+ */
+const PATTERN_TRANSLATIONS = {
+  'Hammer': 'Búa (Hammer)',
+  'Shooting Star': 'Sao Băng',
+  'Bullish Engulfing': 'Nhấn Chìm Tăng',
+  'Bearish Engulfing': 'Nhấn Chìm Giảm',
+  'Doji': 'Doji'
+};
+
+/**
+ * Translate pattern name to Vietnamese
+ */
+function translatePattern(patternName, patternType) {
+  // Check exact match first
+  if (PATTERN_TRANSLATIONS[patternName]) {
+    return PATTERN_TRANSLATIONS[patternName];
+  }
+  
+  // Check partial matches
+  if (patternName.includes('Hammer')) return PATTERN_TRANSLATIONS['Hammer'];
+  if (patternName.includes('Shooting Star')) return PATTERN_TRANSLATIONS['Shooting Star'];
+  if (patternName.includes('Engulfing')) {
+    return patternType === 'bullish' 
+      ? PATTERN_TRANSLATIONS['Bullish Engulfing'] 
+      : PATTERN_TRANSLATIONS['Bearish Engulfing'];
+  }
+  if (patternName.includes('Doji')) return PATTERN_TRANSLATIONS['Doji'];
+  
+  // Return original if no translation found
+  return patternName;
+}
+
+/**
  * Generate reasons for entering trade in Vietnamese
  */
 function generateTradeReasons(signal, setup, htfBias, divergence, volumeRatio) {
@@ -54,15 +88,8 @@ function generateTradeReasons(signal, setup, htfBias, divergence, volumeRatio) {
   
   // Pattern analysis
   if (setup.pattern) {
-    const patternName = setup.pattern.name || 'Unknown';
+    const patternVN = translatePattern(setup.pattern.name || 'Unknown', setup.pattern.type);
     const strength = Math.round(setup.pattern.strength * 100);
-    
-    let patternVN = patternName;
-    if (patternName.includes('Hammer')) patternVN = 'Búa (Hammer)';
-    else if (patternName.includes('Shooting Star')) patternVN = 'Sao Băng';
-    else if (patternName.includes('Engulfing')) patternVN = setup.pattern.type === 'bullish' ? 'Nhấn Chìm Tăng' : 'Nhấn Chìm Giảm';
-    else if (patternName.includes('Doji')) patternVN = 'Doji';
-    
     reasons.push(`📊 Mô hình nến ${patternVN} (độ mạnh ${strength}%)`);
   }
   
@@ -167,9 +194,13 @@ function formatSignalMessage(signal) {
     const tp3 = levels.tpZones[2].center;
     const tp3Distance = Math.abs(tp3 - levels.entry);
     const risk = Math.abs(levels.entry - levels.stopLoss);
-    const tp3RR = tp3Distance / risk;
-    const tp3ZoneVN = levels.tpZones[2].type === 'resistance' ? 'kháng cự' : 'hỗ trợ';
-    message += `TP3:    ${formatNumber(tp3, 8)} (${formatNumber(tp3RR, 1)}R) [${tp3ZoneVN}]\n`;
+    
+    // Validate risk is not zero to avoid division by zero
+    if (risk > 0) {
+      const tp3RR = tp3Distance / risk;
+      const tp3ZoneVN = levels.tpZones[2].type === 'resistance' ? 'kháng cự' : 'hỗ trợ';
+      message += `TP3:    ${formatNumber(tp3, 8)} (${formatNumber(tp3RR, 1)}R) [${tp3ZoneVN}]\n`;
+    }
   }
   
   message += '```\n\n';
@@ -197,8 +228,9 @@ function formatSignalMessage(signal) {
 
   // Timestamp and footer
   const date = new Date(timestamp);
+  const timezone = process.env.TELEGRAM_TIMEZONE || 'Asia/Ho_Chi_Minh';
   const timeStr = date.toLocaleString('vi-VN', { 
-    timeZone: 'Asia/Ho_Chi_Minh',
+    timeZone: timezone,
     year: 'numeric',
     month: '2-digit', 
     day: '2-digit',
