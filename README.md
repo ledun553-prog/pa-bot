@@ -92,6 +92,16 @@ TIMEFRAMES=1d,4h,1h
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
 TELEGRAM_CHAT_ID=your_telegram_chat_id_here
 
+# Optional: Send to Telegram group (e.g., -1001234567890)
+TELEGRAM_GROUP_ID=
+
+# Optional: Enable startup/connection test messages (default: false)
+TELEGRAM_SEND_STARTUP=false
+TELEGRAM_SEND_CONNECTION_TEST=false
+
+# Optional: Customize signal source footer (default: "Posiya Tú zalo 0763888872")
+SIGNAL_SOURCE_TEXT=Posiya Tú zalo 0763888872
+
 # Signal Configuration
 SIGNAL_COOLDOWN_MINUTES=60
 MIN_SIGNAL_SCORE=70  # Legacy, kept for backward compatibility
@@ -141,6 +151,12 @@ LOG_LEVEL=info
    ```
 6. Look for `"chat":{"id":123456789}` in the response
 7. Add the chat ID to `.env` as `TELEGRAM_CHAT_ID`
+
+**Optional - Send to Group:**
+- Add your bot to a Telegram group
+- Get the group chat ID (usually starts with `-100`) from `/getUpdates`
+- Add it to `.env` as `TELEGRAM_GROUP_ID`
+- The bot will send signals to both private chat and group (duplicates are filtered)
 
 ## Configuration
 
@@ -243,6 +259,16 @@ DRY_RUN=true npm start
 
 Signals will be logged to console in formatted output.
 
+### Preview Telegram Messages
+
+Preview the formatted message output without running the full bot:
+
+```bash
+node scripts/preview-telegram-message.js
+```
+
+This script generates sample signals (LONG and SHORT) to show how messages will appear in Telegram with your current configuration (including custom `SIGNAL_SOURCE_TEXT` if set).
+
 ### Production with PM2
 
 Install PM2 globally:
@@ -312,8 +338,11 @@ Run backtests to evaluate signal quality on historical data:
 # Backtest single symbol, 30 days
 node scripts/backtest.js --symbol BTCUSDT --timeframe 1h --period 30d
 
+
 # Backtest multiple symbols, 7 days
 node scripts/backtest.js --symbols BTCUSDT,ETHUSDT --timeframe 1h --period 7d
+
+Signals are sent to Telegram with HTML formatting in a professional Vietnamese layout:
 
 # Use .env configuration
 node scripts/backtest.js --config --period 90d
@@ -324,6 +353,7 @@ node scripts/backtest.js --symbol BTCUSDT --timeframe 1h --period 30d --output r
 # Detailed output with signal logs
 node scripts/backtest.js --symbol BTCUSDT --timeframe 1h --period 7d --detailed
 ```
+
 
 **Backtest Output:**
 - Total signals generated
@@ -384,6 +414,41 @@ TP2:    43900.00000000 (3.0R) [kháng cự]
 🟢 RẤT CAO 85/100 điểm
 
 ✅ Khung lớn: 1D 🟢 Tăng | 4H 🟢 Tăng
+
+🟢 LONG | BTCUSDT | 4H
+Đảo chiều
+━━━━━━━━━━━━━━━━━━━━
+
+📋 KẾ HOẠCH GIAO DỊCH
+Entry: 42500.50000000
+SL: 42000.00000000 (1.18%)
+TP1: 43500.00000000 (2.35%) [2.0R]
+TP2: 44500.00000000 (4.70%) [4.0R]
+TP3: 45500.00000000 (7.06%) [6.0R]
+
+Risk/Reward: 2R | WR: 65% | EV: 1.30
+
+Điểm tín hiệu: 82/100
+
+💡 Lý do vào kèo
+✅ Xu hướng lớn TĂNG rõ ràng (1D tăng, 4H tăng)
+✅ Mô hình nến Búa (Hammer) (độ mạnh 85%)
+✅ Đảo chiều tại vùng hỗ trợ mạnh
+✅ Volume CỰC MẠNH (2.3x TB) - tín hiệu rất tích cực
+✅ Phân kỳ tăng - tín hiệu đảo chiều mạnh
+
+━━━━━━━━━━━━━━━━━━━━
+🕐 13:53 12/02/2026
+📱 Posiya Tú zalo 0763888872
+```
+
+**Message Features:**
+- **Header**: Side (🟢 LONG / 🔴 SHORT), symbol, timeframe, setup type in Vietnamese
+- **Trade Plan**: Entry, SL, and up to 3 TPs with percentages and risk/reward ratios
+- **Metrics**: RR (Risk/Reward), WR (Win Rate), EV (Expected Value) when available
+- **Signal Score**: 0-100 score indicating signal quality
+- **Reasons**: Vietnamese bullet points explaining the trade setup
+- **Footer**: Timestamp and customizable source text (configurable via `SIGNAL_SOURCE_TEXT`)
 
 ✅ Anti-Chase: Good entry conditions
 
