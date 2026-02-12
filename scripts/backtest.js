@@ -174,7 +174,7 @@ async function simulateSignals(symbol, timeframe, candles, engine, options) {
 
 /**
  * Calculate win rate and performance metrics
- * Simplified: assumes TP1 hit = win, SL hit = loss
+ * V2: Enhanced with setup type breakdown
  */
 function calculateMetrics(signals, candles, symbol, timeframe) {
   let wins = 0;
@@ -182,7 +182,24 @@ function calculateMetrics(signals, candles, symbol, timeframe) {
   let totalRR = 0;
   let totalPnL = 0;
   
+  // V2: Track by setup type
+  const setupTypes = {};
+  
   for (const signal of signals) {
+    const setupType = signal.setup_type || signal.setupType || 'unknown';
+    
+    if (!setupTypes[setupType]) {
+      setupTypes[setupType] = {
+        count: 0,
+        wins: 0,
+        losses: 0,
+        totalPnL: 0,
+        totalRR: 0
+      };
+    }
+    
+    setupTypes[setupType].count++;
+    
     // Find candles after signal timestamp
     const signalIndex = candles.findIndex(c => c.closeTime >= signal.timestamp);
     if (signalIndex === -1 || signalIndex >= candles.length - 1) continue;
@@ -232,20 +249,28 @@ function calculateMetrics(signals, candles, symbol, timeframe) {
     // Calculate result
     if (hitSL) {
       losses++;
+      setupTypes[setupType].losses++;
       const risk = Math.abs(entry - sl);
       totalPnL -= risk;
+      setupTypes[setupType].totalPnL -= risk;
     } else if (hitTP2) {
       wins++;
+      setupTypes[setupType].wins++;
       const reward = Math.abs(tp2 - entry);
       totalPnL += reward;
+      setupTypes[setupType].totalPnL += reward;
       const risk = Math.abs(entry - sl);
       const rr2 = reward / risk;
       totalRR += rr2;
+      setupTypes[setupType].totalRR += rr2;
     } else if (hitTP1) {
       wins++;
+      setupTypes[setupType].wins++;
       const reward = Math.abs(tp1 - entry);
       totalPnL += reward;
+      setupTypes[setupType].totalPnL += reward;
       totalRR += signal.levels.riskReward1;
+      setupTypes[setupType].totalRR += signal.levels.riskReward1;
     }
     // If neither hit within available data, we don't count it
   }
@@ -265,17 +290,18 @@ function calculateMetrics(signals, candles, symbol, timeframe) {
     winRate,
     avgRR,
     expectancy,
-    totalPnL
+    totalPnL,
+    setupTypes // V2 addition
   };
 }
 
 /**
- * Generate report
+ * Generate report - V2 Enhanced
  */
 function generateReport(results, options) {
   let report = '\n';
   report += '='.repeat(80) + '\n';
-  report += 'PA-BOT BACKTEST REPORT\n';
+  report += 'PA-BOT V2 BACKTEST REPORT\n';
   report += '='.repeat(80) + '\n\n';
   
   report += `Period: ${options.startDate || 'Auto'} to ${options.endDate || 'Now'}\n`;
@@ -296,6 +322,23 @@ function generateReport(results, options) {
     report += `Avg R:R: ${result.avgRR.toFixed(2)}\n`;
     report += `Expectancy: ${result.expectancy.toFixed(4)}\n`;
     report += `Total P&L: ${result.totalPnL.toFixed(4)}\n`;
+    
+    // V2: Setup type breakdown
+    if (result.setupTypes && Object.keys(result.setupTypes).length > 0) {
+      report += '\n';
+      report += `Setup Type Breakdown:\n`;
+      
+      for (const [setupType, stats] of Object.entries(result.setupTypes)) {
+        const setupTrades = stats.wins + stats.losses;
+        const setupWinRate = setupTrades > 0 ? (stats.wins / setupTrades) * 100 : 0;
+        const setupAvgRR = setupTrades > 0 ? stats.totalRR / setupTrades : 0;
+        const setupExpectancy = setupTrades > 0 ? stats.totalPnL / setupTrades : 0;
+        
+        report += `  • ${setupType}: ${stats.count} signals (${setupTrades} trades)\n`;
+        report += `    Win Rate: ${setupWinRate.toFixed(1)}% | Avg R:R: ${setupAvgRR.toFixed(2)} | Expectancy: ${setupExpectancy.toFixed(4)}\n`;
+      }
+    }
+    
     report += '\n';
   }
   
@@ -317,6 +360,43 @@ function generateReport(results, options) {
     report += `Avg Win Rate: ${avgWinRate.toFixed(2)}%\n`;
     report += `Avg R:R: ${avgRR.toFixed(2)}\n`;
     report += `Total P&L: ${totalPnL.toFixed(4)}\n`;
+    
+    // V2: Aggregate setup type stats
+    const allSetupTypes = {};
+    for (const result of results) {
+      if (result.setupTypes) {
+        for (const [setupType, stats] of Object.entries(result.setupTypes)) {
+          if (!allSetupTypes[setupType]) {
+            allSetupTypes[setupType] = { count: 0, wins: 0, losses: 0, totalPnL: 0, totalRR: 0 };
+          }
+          allSetupTypes[setupType].count += stats.count;
+          allSetupTypes[setupType].wins += stats.wins;
+          allSetupTypes[setupType].losses += stats.losses;
+          allSetupTypes[setupType].totalPnL += stats.totalPnL;
+          allSetupTypes[setupType].totalRR += stats.totalRR;
+        }
+      }
+    }
+    
+    if (Object.keys(allSetupTypes).length > 0) {
+      report += '\n';
+      report += 'Setup Type Summary (All Symbols):\n';
+      report += '-'.repeat(80) + '\n';
+      
+      // Sort by count descending
+      const sortedSetups = Object.entries(allSetupTypes).sort((a, b) => b[1].count - a[1].count);
+      
+      for (const [setupType, stats] of sortedSetups) {
+        const setupTrades = stats.wins + stats.losses;
+        const setupWinRate = setupTrades > 0 ? (stats.wins / setupTrades) * 100 : 0;
+        const setupAvgRR = setupTrades > 0 ? stats.totalRR / setupTrades : 0;
+        const setupExpectancy = setupTrades > 0 ? stats.totalPnL / setupTrades : 0;
+        
+        report += `${setupType}: ${stats.count} signals (${setupTrades} trades, ${stats.wins}W/${stats.losses}L)\n`;
+        report += `  Win Rate: ${setupWinRate.toFixed(1)}% | Avg R:R: ${setupAvgRR.toFixed(2)} | Expectancy: ${setupExpectancy.toFixed(4)}\n`;
+      }
+    }
+    
     report += '\n';
   }
   
