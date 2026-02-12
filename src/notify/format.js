@@ -274,13 +274,20 @@ function formatSignalMessage(signal) {
   const timezone = process.env.TELEGRAM_TIMEZONE || 'Asia/Ho_Chi_Minh';
   
   // Format: HH:mm DD/MM/YYYY
-  const hours = date.toLocaleString('en-US', { timeZone: timezone, hour: '2-digit', hour12: false });
-  const minutes = date.toLocaleString('en-US', { timeZone: timezone, minute: '2-digit' });
-  const day = date.toLocaleString('en-US', { timeZone: timezone, day: '2-digit' });
-  const month = date.toLocaleString('en-US', { timeZone: timezone, month: '2-digit' });
-  const year = date.toLocaleString('en-US', { timeZone: timezone, year: 'numeric' });
+  const dateFormatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour12: false
+  });
   
-  const timeStr = `${hours}:${minutes} ${day}/${month}/${year}`;
+  const parts = dateFormatter.formatToParts(date);
+  const getValue = (type) => parts.find(p => p.type === type)?.value || '';
+  
+  const timeStr = `${getValue('hour')}:${getValue('minute')} ${getValue('day')}/${getValue('month')}/${getValue('year')}`;
   
   message += `━━━━━━━━━━━━━━━━━━━━\n`;
   message += `🕐 ${timeStr}\n`;
