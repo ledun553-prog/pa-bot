@@ -207,7 +207,7 @@ function calculateLevels(setup, zoneSLBuffer = null) {
   const entry = setup.price;
   const slBuffer = zoneSLBuffer || parseFloat(process.env.ZONE_SL_BUFFER_PCT) || 0.2;
   
-  let stopLoss, tp1, tp2;
+  let stopLoss, tp1, tp2, tp3;
   let tpZones = [];
   let slZone = null;
 
@@ -234,21 +234,31 @@ function calculateLevels(setup, zoneSLBuffer = null) {
     // Find take profit zones (resistance zones above entry) - up to 3 targets
     tpZones = findNextOpposingZones(entry, zones.resistance, 'LONG', 3);
     
-    if (tpZones.length >= 2) {
+    if (tpZones.length >= 3) {
       // Use zone centers as TP targets
       tp1 = tpZones[0].center;
       tp2 = tpZones[1].center;
+      tp3 = tpZones[2].center;
+    } else if (tpZones.length === 2) {
+      // Two TP zones available
+      tp1 = tpZones[0].center;
+      tp2 = tpZones[1].center;
+      // Calculate TP3 based on risk/reward from TP2
+      const risk = entry - stopLoss;
+      tp3 = entry + risk * 4.5; // 4.5R as fallback for TP3
     } else if (tpZones.length === 1) {
       // Only one TP zone available
       tp1 = tpZones[0].center;
-      // Calculate TP2 based on risk/reward from TP1
+      // Calculate TP2 and TP3 based on risk/reward
       const risk = entry - stopLoss;
       tp2 = entry + risk * 3.0; // 3R as fallback
+      tp3 = entry + risk * 4.5; // 4.5R as fallback
     } else {
       // No TP zones available, use traditional RR-based approach
       const risk = entry - stopLoss;
       tp1 = entry + risk * 1.5;
       tp2 = entry + risk * 3.0;
+      tp3 = entry + risk * 4.5;
       console.log('[Levels] No TP zones found for LONG, using RR-based targets');
     }
 
@@ -272,21 +282,31 @@ function calculateLevels(setup, zoneSLBuffer = null) {
     // Find take profit zones (support zones below entry) - up to 3 targets
     tpZones = findNextOpposingZones(entry, zones.support, 'SHORT', 3);
     
-    if (tpZones.length >= 2) {
+    if (tpZones.length >= 3) {
       // Use zone centers as TP targets
       tp1 = tpZones[0].center;
       tp2 = tpZones[1].center;
+      tp3 = tpZones[2].center;
+    } else if (tpZones.length === 2) {
+      // Two TP zones available
+      tp1 = tpZones[0].center;
+      tp2 = tpZones[1].center;
+      // Calculate TP3 based on risk/reward
+      const risk = stopLoss - entry;
+      tp3 = entry - risk * 4.5; // 4.5R as fallback for TP3
     } else if (tpZones.length === 1) {
       // Only one TP zone available
       tp1 = tpZones[0].center;
-      // Calculate TP2 based on risk/reward from TP1
+      // Calculate TP2 and TP3 based on risk/reward
       const risk = stopLoss - entry;
       tp2 = entry - risk * 3.0; // 3R as fallback
+      tp3 = entry - risk * 4.5; // 4.5R as fallback
     } else {
       // No TP zones available, use traditional RR-based approach
       const risk = stopLoss - entry;
       tp1 = entry - risk * 1.5;
       tp2 = entry - risk * 3.0;
+      tp3 = entry - risk * 4.5;
       console.log('[Levels] No TP zones found for SHORT, using RR-based targets');
     }
   }
@@ -296,14 +316,18 @@ function calculateLevels(setup, zoneSLBuffer = null) {
   const rr1 = reward1 / risk;
   const reward2 = Math.abs(tp2 - entry);
   const rr2 = reward2 / risk;
+  const reward3 = Math.abs(tp3 - entry);
+  const rr3 = reward3 / risk;
 
   return {
     entry: parseFloat(entry.toFixed(8)),
     stopLoss: parseFloat(stopLoss.toFixed(8)),
     takeProfit1: parseFloat(tp1.toFixed(8)),
     takeProfit2: parseFloat(tp2.toFixed(8)),
+    takeProfit3: parseFloat(tp3.toFixed(8)),
     riskReward1: parseFloat(rr1.toFixed(2)),
     riskReward2: parseFloat(rr2.toFixed(2)),
+    riskReward3: parseFloat(rr3.toFixed(2)),
     slZone: slZone ? { center: slZone.center, type: slZone.type } : null,
     tpZones: tpZones.map(z => ({ center: z.center, type: z.type, distancePercent: z.distancePercent }))
   };

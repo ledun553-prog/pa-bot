@@ -140,6 +140,7 @@ class SignalEngine {
         stop_loss: levels.stopLoss,
         take_profit1: levels.takeProfit1,
         take_profit2: levels.takeProfit2,
+        take_profit3: levels.takeProfit3,
         risk_reward: levels.riskReward1,
         zone_key: zoneKey
       };

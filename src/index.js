@@ -5,7 +5,7 @@ const { fetchKlines } = require('./binance/rest');
 const klinesCache = require('./binance/klinesCache');
 const binanceWS = require('./binance/ws');
 const { initDatabase, cleanupExpiredCooldowns } = require('./store/db');
-const { initTelegram, testConnection, sendMessage } = require('./notify/telegram');
+const telegram = require('./notify/telegram');
 const SignalEngine = require('./app/engine');
 
 class PABot {
@@ -27,11 +27,28 @@ class PABot {
       initDatabase();
       cleanupExpiredCooldowns();
 
-      initTelegram();
+      // Validate telegram module exports before using
+      if (typeof telegram !== 'object') {
+        throw new Error('Telegram module must export an object');
+      }
+      if (typeof telegram.initTelegram !== 'function') {
+        throw new Error('telegram.initTelegram must be a function');
+      }
+      if (typeof telegram.testConnection !== 'function') {
+        throw new Error('telegram.testConnection must be a function');
+      }
+      if (typeof telegram.sendMessage !== 'function') {
+        throw new Error('telegram.sendMessage must be a function');
+      }
+      if (typeof telegram.sendSignal !== 'function') {
+        throw new Error('telegram.sendSignal must be a function');
+      }
+
+      telegram.initTelegram();
 
       const testConnectionEnabled = process.env.TELEGRAM_SEND_CONNECTION_TEST === 'true';
       if (testConnectionEnabled) {
-        await testConnection();
+        await telegram.testConnection();
       } else {
         console.log('[Init] Telegram connection test disabled (TELEGRAM_SEND_CONNECTION_TEST not set to true)');
       }
@@ -135,7 +152,7 @@ class PABot {
       `Min Score: ${process.env.ENTRY_SCORE_THRESHOLD || process.env.MIN_SIGNAL_SCORE || 70}\n` +
       `Cooldown: ${process.env.SIGNAL_COOLDOWN_MINUTES || 60}m`;
 
-    await sendMessage(message);
+    await telegram.sendMessage(message);
   }
 
   async shutdown() {

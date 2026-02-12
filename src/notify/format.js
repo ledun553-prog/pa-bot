@@ -180,12 +180,15 @@ function formatSignalMessage(signal) {
 
   const tp1 = levels.takeProfit1;
   const tp2 = levels.takeProfit2;
+  const tp3 = levels.takeProfit3; // Add TP3 support
 
   const tp1Percent = typeof tp1 === 'number' ? calculatePercent(entry, tp1) : null;
   const tp2Percent = typeof tp2 === 'number' ? calculatePercent(entry, tp2) : null;
+  const tp3Percent = typeof tp3 === 'number' ? calculatePercent(entry, tp3) : null;
 
   const rr1 = levels.riskReward1;
   const rr2 = levels.riskReward2;
+  const rr3 = levels.riskReward3; // Add RR3 support
 
   let msg = '';
   msg += `${sideEmoji} <b>${escapeHtml(sideText)} | ${escapeHtml(symbol)} | ${escapeHtml(
@@ -195,41 +198,45 @@ function formatSignalMessage(signal) {
   msg += `━━━━━━━━━━━━━━━━━━━━\n\n`;
 
   msg += `<b>📋 KẾ HOẠCH GIAO DỊCH</b>\n`;
-  msg += `Entry: <code>${formatNumber(entry, 8)}</code>\n`;
+  msg += `<b>Entry:</b> <code>${formatNumber(entry, 8)}</code>\n`;
 
-  msg += `SL: <code>${formatNumber(sl, 8)}</code>`;
+  msg += `<b>SL:</b> <code>${formatNumber(sl, 8)}</code>`;
   if (slPercent !== null) msg += ` (${formatNumber(Math.abs(slPercent), 2)}%)`;
-  if (levels.slZone?.type) {
-    const z = levels.slZone.type === 'support' ? 'support' : 'resistance';
-    msg += ` <i>[${escapeHtml(z)}]</i>`;
-  }
   msg += `\n`;
 
   if (typeof tp1 === 'number') {
-    msg += `TP1: <code>${formatNumber(tp1, 8)}</code>`;
-    if (tp1Percent !== null) msg += ` (${formatNumber(Math.abs(tp1Percent), 2)}%)`;
+    msg += `<b>TP1:</b> <code>${formatNumber(tp1, 8)}</code>`;
+    if (tp1Percent !== null) msg += ` (+${formatNumber(Math.abs(tp1Percent), 2)}%)`;
     if (typeof rr1 === 'number') msg += ` <b>[${formatNumber(rr1, 1)}R]</b>`;
-    if (levels.tpZones?.[0]?.type) msg += ` <i>[${escapeHtml(levels.tpZones[0].type)}]</i>`;
     msg += `\n`;
   }
 
   if (typeof tp2 === 'number') {
-    msg += `TP2: <code>${formatNumber(tp2, 8)}</code>`;
-    if (tp2Percent !== null) msg += ` (${formatNumber(Math.abs(tp2Percent), 2)}%)`;
+    msg += `<b>TP2:</b> <code>${formatNumber(tp2, 8)}</code>`;
+    if (tp2Percent !== null) msg += ` (+${formatNumber(Math.abs(tp2Percent), 2)}%)`;
     if (typeof rr2 === 'number') msg += ` <b>[${formatNumber(rr2, 1)}R]</b>`;
-    if (levels.tpZones?.[1]?.type) msg += ` <i>[${escapeHtml(levels.tpZones[1].type)}]</i>`;
+    msg += `\n`;
+  }
+
+  if (typeof tp3 === 'number') {
+    msg += `<b>TP3:</b> <code>${formatNumber(tp3, 8)}</code>`;
+    if (tp3Percent !== null) msg += ` (+${formatNumber(Math.abs(tp3Percent), 2)}%)`;
+    if (typeof rr3 === 'number') msg += ` <b>[${formatNumber(rr3, 1)}R]</b>`;
     msg += `\n`;
   }
 
   msg += `\n`;
 
+  // Add RR/WR/EV line (WR and EV are heuristics/proxy for now)
   if (typeof rr1 === 'number') {
-    msg += `<b>Risk/Reward:</b> ${escapeHtml(formatNumber(rr1, 2))}R\n\n`;
+    const winRate = 60; // Heuristic win rate for display
+    const ev = (rr1 * (winRate / 100)) - ((100 - winRate) / 100);
+    msg += `<b>RR:</b> ${formatNumber(rr1, 2)}R | <b>WR:</b> ~${winRate}% | <b>EV:</b> ${formatNumber(ev, 2)}R\n\n`;
   }
 
   msg += `<b>Điểm tín hiệu:</b> ${escapeHtml(score)}/100\n\n`;
 
-  msg += `<b>💡 Lý do vào kèo</b>\n`;
+  msg += `<b>💡 LÝ DO VÀO KÈO</b>\n`;
   const reasons = generateTradeReasons(signal);
   if (reasons.length) {
     for (const r of reasons) msg += `✅ ${escapeHtml(r)}\n`;
@@ -238,16 +245,12 @@ function formatSignalMessage(signal) {
   }
   msg += `\n`;
 
-  if (signal.chaseEval && signal.chaseEval.decision) {
-    const decision = String(signal.chaseEval.decision);
-    const reason = escapeHtml(signal.chaseEval.reason || '');
-    if (decision === 'CHASE_OK') msg += `✅ <b>Anti-chase:</b> ${reason}\n\n`;
-    else if (decision === 'REVERSAL_WATCH') msg += `🔄 <b>Anti-chase:</b> ${reason}\n\n`;
-  }
+  // Add trailing stop note for Vietnamese
+  msg += `<i>💡 Lưu ý: Trailing stop sau khi chạm TP1</i>\n\n`;
 
   msg += `━━━━━━━━━━━━━━━━━━━━\n`;
   msg += `🕐 ${escapeHtml(formatTime(signal.timestamp))}\n`;
-  msg += `📱 ${escapeHtml(sourceText)}`;
+  msg += `📱 Nguồn ${escapeHtml(sourceText)}`;
 
   return msg;
 }
