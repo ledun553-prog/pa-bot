@@ -228,8 +228,9 @@ function formatSignalMessage(signal) {
   msg += `\n`;
 
   // Add RR/WR/EV line (WR and EV are heuristics/proxy for now)
+  // TODO: Replace with actual performance metrics from database when available
   if (typeof rr1 === 'number') {
-    const winRate = 60; // Heuristic win rate for display
+    const winRate = 60; // Heuristic win rate for display (should be calculated from historical data)
     const ev = (rr1 * (winRate / 100)) - ((100 - winRate) / 100);
     msg += `<b>RR:</b> ${formatNumber(rr1, 2)}R | <b>WR:</b> ~${winRate}% | <b>EV:</b> ${formatNumber(ev, 2)}R\n\n`;
   }
