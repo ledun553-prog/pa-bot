@@ -2,21 +2,29 @@ const { getCandleStrength } = require('./patterns');
 const { calculateAverageVolume } = require('./setups');
 const { findNextOpposingZones, findStopLossZone } = require('./zones');
 
+// V2 Scoring Weight Constants
+const SWEEP_STRENGTH_WEIGHT = 7;
+const TRAP_STRENGTH_WEIGHT = 6;
+const RETEST_STRENGTH_WEIGHT = 5;
+const FALSE_BREAK_STRENGTH_WEIGHT = 5;
+
 /**
- * Score a trading signal (0-100)
+ * Score a trading signal (0-100+)
  * Combines: HTF alignment, setup quality, candle strength, volume context, RSI divergence
+ * V2: Added BOS/CHOCH, sweep/trap, retest, false break scoring
  */
 
 /**
- * Calculate signal score
+ * Calculate signal score - V2 Enhanced
  * @param {Object} setup - Setup object from setups.js
  * @param {Object} htfAlignment - HTF alignment from structure.js
  * @param {Array} candles - Recent candles
  * @param {Object} divergence - RSI divergence info (optional, bonus points)
+ * @param {Object} structureEvents - BOS/CHOCH events (optional, bonus points)
  * @param {Object} config - Configuration with bonus settings
  * @returns {Object} { score, breakdown }
  */
-function calculateScore(setup, htfAlignment, candles, divergence, config = {}) {
+function calculateScore(setup, htfAlignment, candles, divergence, structureEvents, config = {}) {
   let score = 0;
   const breakdown = {};
 
@@ -28,12 +36,12 @@ function calculateScore(setup, htfAlignment, candles, divergence, config = {}) {
   score += htfScore;
   breakdown.htf = htfScore;
 
-  // 2. Setup Quality Score (0-30 points) - REQUIRED (increased from 25)
-  const setupScore = calculateSetupScore(setup);
+  // 2. Setup Quality Score (0-35 points) - REQUIRED (increased for V2 setups)
+  const setupScore = calculateSetupScoreV2(setup);
   score += setupScore;
   breakdown.setup = setupScore;
 
-  // 3. Candle Strength Score (0-25 points) - REQUIRED (increased from 20)
+  // 3. Candle Strength Score (0-25 points) - REQUIRED
   const candleScore = calculateCandleScore(candles, setup.side);
   score += candleScore;
   breakdown.candle = candleScore;
@@ -48,10 +56,32 @@ function calculateScore(setup, htfAlignment, candles, divergence, config = {}) {
   score += divergenceScore;
   breakdown.divergence = divergenceScore;
 
+  // V2 ADDITIONS
+
+  // 6. BOS/CHOCH Alignment Score (0-15 points) - BONUS
+  const structureScore = calculateStructureScore(structureEvents, setup.side);
+  score += structureScore;
+  breakdown.structure = structureScore;
+
+  // 7. Sweep/Trap Strength Score (0-12 points) - BONUS
+  const sweepScore = calculateSweepScore(setup);
+  score += sweepScore;
+  breakdown.sweep = sweepScore;
+
+  // 8. Retest Confirmation Score (0-10 points) - BONUS
+  const retestScore = calculateRetestScore(setup);
+  score += retestScore;
+  breakdown.retest = retestScore;
+
+  // 9. False Break Score (0-8 points) - BONUS
+  const falseBreakScore = calculateFalseBreakScore(setup);
+  score += falseBreakScore;
+  breakdown.falseBreak = falseBreakScore;
+
   return {
     score: Math.round(score),
     breakdown,
-    maxScore: 100 + rsiBonus // Base 100 (HTF:30 + Setup:30 + Candle:25 + Volume:15) + RSI bonus
+    maxScore: 100 + rsiBonus + 15 + 12 + 10 + 8 // Base 100 + bonuses
   };
 }
 
@@ -73,7 +103,165 @@ function calculateHTFScore(side, htfAlignment) {
 }
 
 /**
- * Calculate setup quality score (0-30)
+ * Calculate setup quality score (0-35) - V2 Enhanced
+ */
+function calculateSetupScoreV2(setup) {
+  let score = 10; // Base score for having a setup
+
+  const setupType = setup.setupType || setup.type;
+
+  // V2 Priority setups get higher scores
+  if (setupType === 'liquidity_sweep_bull' || setupType === 'liquidity_sweep_bear') {
+    score += 18; // Highest quality setup
+    if (setup.strength) {
+      score += setup.strength * SWEEP_STRENGTH_WEIGHT;
+    }
+  } else if (setupType === 'trap_bull' || setupType === 'trap_bear') {
+    score += 16;
+    if (setup.strength) {
+      score += setup.strength * TRAP_STRENGTH_WEIGHT;
+    }
+  } else if (setupType === 'breakout_retest') {
+    score += 15;
+    if (setup.strength) {
+      score += setup.strength * RETEST_STRENGTH_WEIGHT;
+    }
+  } else if (setupType === 'false_break_confirmed') {
+    score += 14;
+    if (setup.strength) {
+      score += setup.strength * FALSE_BREAK_STRENGTH_WEIGHT;
+    }
+  } else if (setupType === 'reversal') {
+    score += 12; // Reversals at key levels are high quality
+    
+    // Extra bonus for strong pattern
+    if (setup.pattern && setup.pattern.strength) {
+      score += setup.pattern.strength * 8;
+    }
+  } else if ((setupType === 'breakout' || setupType === 'breakdown') && setup.isTrue) {
+    score += 15; // True breakouts with volume
+  } else if (setupType === 'retest') {
+    score += 12; // Retests are high quality
+    if (setup.pattern) {
+      score += 5;
+    }
+  } else if (setupType === 'false_breakout' || setupType === 'false_breakdown') {
+    score += 10; // False breakout fades
+  } else {
+    score += 5; // Other setups
+  }
+
+  return Math.min(score, 35);
+}
+
+/**
+ * Calculate BOS/CHOCH alignment score (0-15 points) - V2 BONUS
+ */
+function calculateStructureScore(structureEvents, side) {
+  if (!structureEvents) return 0;
+
+  let score = 0;
+
+  // CHOCH aligned with signal direction (strong reversal signal)
+  if (structureEvents.choch) {
+    const choch = structureEvents.choch;
+    const aligned = (side === 'LONG' && choch.direction === 'bullish') ||
+                    (side === 'SHORT' && choch.direction === 'bearish');
+    if (aligned) {
+      score += 15; // Maximum bonus for CHOCH alignment
+    }
+  }
+  // BOS aligned with signal direction (continuation signal)
+  else if (structureEvents.bos) {
+    const bos = structureEvents.bos;
+    const aligned = (side === 'LONG' && bos.direction === 'bullish') ||
+                    (side === 'SHORT' && bos.direction === 'bearish');
+    if (aligned) {
+      score += 10; // Good bonus for BOS alignment
+    }
+  }
+
+  return score;
+}
+
+/**
+ * Calculate sweep/trap strength score (0-12 points) - V2 BONUS
+ */
+function calculateSweepScore(setup) {
+  const setupType = setup.setupType || setup.type;
+
+  if (setupType === 'liquidity_sweep_bull' || setupType === 'liquidity_sweep_bear') {
+    let score = 5; // Base sweep score
+
+    // Add based on wick rejection strength
+    if (setup.lowerWickRatio) {
+      score += setup.lowerWickRatio * 4; // 0-4 points
+    } else if (setup.upperWickRatio) {
+      score += setup.upperWickRatio * 4;
+    }
+
+    // Add if volume confirmed
+    if (setup.hasVolume) {
+      score += 3;
+    }
+
+    return Math.min(score, 12);
+  }
+
+  if (setupType === 'trap_bull' || setupType === 'trap_bear') {
+    let score = 4; // Base trap score
+    if (setup.wickRatio) {
+      score += setup.wickRatio * 5;
+    }
+    return Math.min(score, 12);
+  }
+
+  return 0;
+}
+
+/**
+ * Calculate retest confirmation score (0-10 points) - V2 BONUS
+ */
+function calculateRetestScore(setup) {
+  const setupType = setup.setupType || setup.type;
+
+  if (setupType === 'breakout_retest') {
+    let score = 5; // Base retest score
+
+    // Bonus for confirmation pattern
+    if (setup.confirmation && setup.confirmation.pattern) {
+      const patternStrength = setup.confirmation.pattern.strength || 0.7;
+      score += patternStrength * 5;
+    }
+
+    return Math.min(score, 10);
+  }
+
+  return 0;
+}
+
+/**
+ * Calculate false break score (0-8 points) - V2 BONUS
+ */
+function calculateFalseBreakScore(setup) {
+  const setupType = setup.setupType || setup.type;
+
+  if (setupType === 'false_break_confirmed') {
+    let score = 4; // Base false break score
+
+    // Bonus for confirmation pattern strength
+    if (setup.pattern && setup.pattern.strength) {
+      score += setup.pattern.strength * 4;
+    }
+
+    return Math.min(score, 8);
+  }
+
+  return 0;
+}
+
+/**
+ * Calculate setup quality score (0-30) - Legacy (kept for compatibility)
  */
 function calculateSetupScore(setup) {
   let score = 10; // Base score for having a setup
@@ -338,7 +526,12 @@ module.exports = {
   calculateLevels,
   calculateHTFScore,
   calculateSetupScore,
+  calculateSetupScoreV2,
   calculateCandleScore,
   calculateVolumeScore,
-  calculateDivergenceScore
+  calculateDivergenceScore,
+  calculateStructureScore,
+  calculateSweepScore,
+  calculateRetestScore,
+  calculateFalseBreakScore
 };

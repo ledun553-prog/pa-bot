@@ -122,8 +122,204 @@ function checkHTFAlignment(signalSide, htfBias) {
   };
 }
 
+/**
+ * Get detailed market structure state (HH/HL/LH/LL)
+ * @param {Array} candles - Array of candles
+ * @param {number} window - Pivot detection window
+ * @returns {Object} Detailed structure state
+ */
+function getMarketStructureState(candles, window = 5) {
+  if (candles.length < 20) {
+    return { state: 'neutral', pivotHighs: [], pivotLows: [] };
+  }
+
+  const pivotHighs = detectPivotHighs(candles, window);
+  const pivotLows = detectPivotLows(candles, window);
+
+  const recentHighs = pivotHighs.slice(-3);
+  const recentLows = pivotLows.slice(-3);
+
+  if (recentHighs.length < 2 || recentLows.length < 2) {
+    return { state: 'neutral', pivotHighs, pivotLows };
+  }
+
+  // Analyze swing structure
+  const lastHigh = candles[recentHighs[recentHighs.length - 1]].high;
+  const prevHigh = candles[recentHighs[recentHighs.length - 2]].high;
+  const lastLow = candles[recentLows[recentLows.length - 1]].low;
+  const prevLow = candles[recentLows[recentLows.length - 2]].low;
+
+  const higherHigh = lastHigh > prevHigh;
+  const lowerHigh = lastHigh < prevHigh;
+  const higherLow = lastLow > prevLow;
+  const lowerLow = lastLow < prevLow;
+
+  let state = 'neutral';
+  if (higherHigh && higherLow) {
+    state = 'HH_HL'; // Uptrend
+  } else if (lowerHigh && lowerLow) {
+    state = 'LH_LL'; // Downtrend
+  } else if (higherHigh && lowerLow) {
+    state = 'HH_LL'; // Mixed (potential reversal)
+  } else if (lowerHigh && higherLow) {
+    state = 'LH_HL'; // Mixed (potential reversal)
+  }
+
+  return {
+    state,
+    pivotHighs,
+    pivotLows,
+    recentHighs,
+    recentLows,
+    lastHigh,
+    lastLow,
+    prevHigh,
+    prevLow
+  };
+}
+
+/**
+ * Detect Break of Structure (BOS) events
+ * BOS = price breaks a recent swing high/low in the direction of trend
+ * @param {Array} candles - Array of candles
+ * @param {Object} structureState - Market structure state
+ * @returns {Object|null} BOS event or null
+ */
+function detectBOS(candles, structureState) {
+  if (!structureState || structureState.state === 'neutral') {
+    return null;
+  }
+
+  const currentCandle = candles[candles.length - 1];
+  const currentPrice = currentCandle.close;
+
+  // Bullish BOS: in uptrend, price breaks above recent swing high
+  if (structureState.state === 'HH_HL') {
+    if (currentPrice > structureState.lastHigh) {
+      return {
+        type: 'BOS',
+        direction: 'bullish',
+        price: currentPrice,
+        brokenLevel: structureState.lastHigh,
+        timestamp: currentCandle.closeTime,
+        candleIndex: candles.length - 1
+      };
+    }
+  }
+
+  // Bearish BOS: in downtrend, price breaks below recent swing low
+  if (structureState.state === 'LH_LL') {
+    if (currentPrice < structureState.lastLow) {
+      return {
+        type: 'BOS',
+        direction: 'bearish',
+        price: currentPrice,
+        brokenLevel: structureState.lastLow,
+        timestamp: currentCandle.closeTime,
+        candleIndex: candles.length - 1
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Detect Change of Character (CHOCH) events
+ * CHOCH = price breaks structure in opposite direction, suggesting reversal
+ * @param {Array} candles - Array of candles
+ * @param {Object} structureState - Market structure state
+ * @returns {Object|null} CHOCH event or null
+ */
+function detectCHOCH(candles, structureState) {
+  if (!structureState || structureState.state === 'neutral') {
+    return null;
+  }
+
+  const currentCandle = candles[candles.length - 1];
+  const prevCandle = candles[candles.length - 2];
+
+  // Bullish CHOCH: in downtrend, price breaks above recent swing high
+  if (structureState.state === 'LH_LL' || structureState.state === 'HH_LL') {
+    const recentHigh = structureState.lastHigh;
+    const brokeAbove = currentCandle.close > recentHigh && prevCandle.close <= recentHigh;
+
+    if (brokeAbove) {
+      return {
+        type: 'CHOCH',
+        direction: 'bullish',
+        price: currentCandle.close,
+        brokenLevel: recentHigh,
+        prevStructure: structureState.state,
+        timestamp: currentCandle.closeTime,
+        candleIndex: candles.length - 1,
+        strength: 'strong' // Can be enhanced based on additional factors
+      };
+    }
+  }
+
+  // Bearish CHOCH: in uptrend, price breaks below recent swing low
+  if (structureState.state === 'HH_HL' || structureState.state === 'LH_HL') {
+    const recentLow = structureState.lastLow;
+    const brokeBelow = currentCandle.close < recentLow && prevCandle.close >= recentLow;
+
+    if (brokeBelow) {
+      return {
+        type: 'CHOCH',
+        direction: 'bearish',
+        price: currentCandle.close,
+        brokenLevel: recentLow,
+        prevStructure: structureState.state,
+        timestamp: currentCandle.closeTime,
+        candleIndex: candles.length - 1,
+        strength: 'strong'
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Detect recent BOS/CHOCH events in last N candles
+ * @param {Array} candles - Array of candles
+ * @param {number} window - Pivot window
+ * @param {number} lookback - How many candles to check for recent events
+ * @returns {Object} { bos: null|Object, choch: null|Object }
+ */
+function detectRecentStructureEvents(candles, window = 5, lookback = 10) {
+  if (candles.length < 20) {
+    return { bos: null, choch: null };
+  }
+
+  let recentBOS = null;
+  let recentCHOCH = null;
+
+  // Check recent candles for BOS/CHOCH
+  for (let i = Math.max(20, candles.length - lookback); i < candles.length; i++) {
+    const subset = candles.slice(0, i + 1);
+    const structureState = getMarketStructureState(subset, window);
+
+    const bos = detectBOS(subset, structureState);
+    if (bos && (!recentBOS || bos.candleIndex > recentBOS.candleIndex)) {
+      recentBOS = bos;
+    }
+
+    const choch = detectCHOCH(subset, structureState);
+    if (choch && (!recentCHOCH || choch.candleIndex > recentCHOCH.candleIndex)) {
+      recentCHOCH = choch;
+    }
+  }
+
+  return { bos: recentBOS, choch: recentCHOCH };
+}
+
 module.exports = {
   analyzeMarketStructure,
   determineHTFBias,
-  checkHTFAlignment
+  checkHTFAlignment,
+  getMarketStructureState,
+  detectBOS,
+  detectCHOCH,
+  detectRecentStructureEvents
 };
