@@ -30,7 +30,7 @@ function calculateTrueRange(candle, prevCandle) {
  * Calculate ATR (Average True Range) using simple moving average
  * @param {Array} candles - Array of candles
  * @param {number} period - ATR period (default: 14)
- * @returns {number} ATR value
+ * @returns {number|null} ATR value, or null if insufficient data
  */
 function calculateATR(candles, period = 14) {
   if (candles.length < period + 1) {

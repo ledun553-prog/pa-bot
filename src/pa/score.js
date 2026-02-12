@@ -2,6 +2,12 @@ const { getCandleStrength } = require('./patterns');
 const { calculateAverageVolume } = require('./setups');
 const { findNextOpposingZones, findStopLossZone } = require('./zones');
 
+// V2 Scoring Weight Constants
+const SWEEP_STRENGTH_WEIGHT = 7;
+const TRAP_STRENGTH_WEIGHT = 6;
+const RETEST_STRENGTH_WEIGHT = 5;
+const FALSE_BREAK_STRENGTH_WEIGHT = 5;
+
 /**
  * Score a trading signal (0-100+)
  * Combines: HTF alignment, setup quality, candle strength, volume context, RSI divergence
@@ -108,22 +114,22 @@ function calculateSetupScoreV2(setup) {
   if (setupType === 'liquidity_sweep_bull' || setupType === 'liquidity_sweep_bear') {
     score += 18; // Highest quality setup
     if (setup.strength) {
-      score += setup.strength * 7;
+      score += setup.strength * SWEEP_STRENGTH_WEIGHT;
     }
   } else if (setupType === 'trap_bull' || setupType === 'trap_bear') {
     score += 16;
     if (setup.strength) {
-      score += setup.strength * 6;
+      score += setup.strength * TRAP_STRENGTH_WEIGHT;
     }
   } else if (setupType === 'breakout_retest') {
     score += 15;
     if (setup.strength) {
-      score += setup.strength * 5;
+      score += setup.strength * RETEST_STRENGTH_WEIGHT;
     }
   } else if (setupType === 'false_break_confirmed') {
     score += 14;
     if (setup.strength) {
-      score += setup.strength * 5;
+      score += setup.strength * FALSE_BREAK_STRENGTH_WEIGHT;
     }
   } else if (setupType === 'reversal') {
     score += 12; // Reversals at key levels are high quality

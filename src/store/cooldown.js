@@ -41,10 +41,12 @@ function evaluateCooldownBypass(signal, config = {}) {
   const setupType = signal.setup?.setupType || signal.setup?.type;
   if (setupType && (setupType.includes('sweep') || setupType.includes('trap'))) {
     const strength = signal.setup.strength || 0;
-    if (strength >= 0.6) {
+    // Validate strength is in valid range [0, 1]
+    const validStrength = Math.max(0, Math.min(1, strength));
+    if (validStrength >= 0.6) {
       return {
         bypass: true,
-        reason: `Strong ${setupType} detected (strength: ${(strength * 100).toFixed(0)}%)`
+        reason: `Strong ${setupType} detected (strength: ${Math.round(validStrength * 100)}%)`
       };
     }
   }

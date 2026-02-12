@@ -95,15 +95,21 @@ function generateTradeReasons(signal) {
     const structures = htfBias.structures || {};
     
     // V2: Support both 1h/4h and 1d/4h HTF structures
-    const tf1 = structures['1d'] || structures['4h'];
-    const tf2 = structures['4h'] || structures['1h'];
+    // Prioritize showing two different timeframes if available
+    const availableTFs = Object.keys(structures).filter(tf => structures[tf]);
     
-    if (tf1 && tf2) {
-      const tf1Name = structures['1d'] ? '1D' : '4H';
-      const tf2Name = structures['4h'] ? '4H' : '1H';
-      const d1 = tf1 === 'up' ? 'tăng' : tf1 === 'down' ? 'giảm' : 'ngang';
-      const h4 = tf2 === 'up' ? 'tăng' : tf2 === 'down' ? 'giảm' : 'ngang';
-      reasons.push(`Xu hướng lớn ${biasVN} (${tf1Name} ${d1}, ${tf2Name} ${h4})`);
+    if (availableTFs.length >= 2) {
+      // Show first two available timeframes
+      const tf1Key = availableTFs[0];
+      const tf2Key = availableTFs[1];
+      const tf1 = structures[tf1Key] === 'up' ? 'tăng' : structures[tf1Key] === 'down' ? 'giảm' : 'ngang';
+      const tf2 = structures[tf2Key] === 'up' ? 'tăng' : structures[tf2Key] === 'down' ? 'giảm' : 'ngang';
+      reasons.push(`Xu hướng lớn ${biasVN} (${tf1Key.toUpperCase()} ${tf1}, ${tf2Key.toUpperCase()} ${tf2})`);
+    } else if (availableTFs.length === 1) {
+      // Only one timeframe available
+      const tfKey = availableTFs[0];
+      const tf = structures[tfKey] === 'up' ? 'tăng' : structures[tfKey] === 'down' ? 'giảm' : 'ngang';
+      reasons.push(`Xu hướng lớn ${biasVN} (${tfKey.toUpperCase()} ${tf})`);
     } else {
       reasons.push(`Xu hướng lớn ${biasVN}`);
     }

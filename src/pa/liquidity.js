@@ -1,9 +1,12 @@
+const { getRecentPivotHighs, getRecentPivotLows } = require('./pivots');
+
+// Constants for volume confirmation
+const VOLUME_CONFIRMATION_MULTIPLIER = 1.2;
+
 /**
  * Liquidity Sweep and Trap Detection
  * Detects when price sweeps liquidity at swing points and reverses
  */
-
-const { getRecentPivotHighs, getRecentPivotLows } = require('./pivots');
 
 /**
  * Detect bullish liquidity sweep at support/swing low
@@ -70,7 +73,7 @@ function detectBullishSweep(candles, config = {}) {
     lowerWickRatio,
     volumeRatio,
     hasVolume,
-    strength: lowerWickRatio * (hasVolume ? 1.2 : 1.0),
+    strength: lowerWickRatio * (hasVolume ? VOLUME_CONFIRMATION_MULTIPLIER : 1.0),
     name: 'Bullish Liquidity Sweep',
     candleIndex: candles.length - 1,
     pivotIndex: recentPivotIdx
@@ -137,7 +140,7 @@ function detectBearishSweep(candles, config = {}) {
     upperWickRatio,
     volumeRatio,
     hasVolume,
-    strength: upperWickRatio * (hasVolume ? 1.2 : 1.0),
+    strength: upperWickRatio * (hasVolume ? VOLUME_CONFIRMATION_MULTIPLIER : 1.0),
     name: 'Bearish Liquidity Sweep',
     candleIndex: candles.length - 1,
     pivotIndex: recentPivotIdx
