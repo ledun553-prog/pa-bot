@@ -1,5 +1,7 @@
 const { detectReversalPattern, getCandleStrength } = require('./patterns');
 const { buildZones, isTouchingZone, findNearestZone } = require('./zones');
+const { detectLiquiditySweep, detectTrap } = require('./liquidity');
+const { detectBreakoutRetestSetup, detectFalseBreakWithConfirmation } = require('./retest');
 
 /**
  * Detect trading setups based on price action
@@ -253,7 +255,8 @@ function detectRetestSetup(candles, zones, config = {}) {
 }
 
 /**
- * Detect any setup
+ * Detect any setup - V2 Enhanced
+ * Priority order: Liquidity sweep > Breakout-retest > False break confirmed > Original setups
  */
 function detectSetup(candles, config = {}) {
   const zones = buildZones(
@@ -272,24 +275,60 @@ function detectSetup(candles, config = {}) {
     return null;
   }
 
-  // Try reversal first
-  let setup = detectReversalSetup(candles, zones, config);
+  // V2 Priority 1: Liquidity sweep/trap (highest quality)
+  let setup = detectLiquiditySweep(candles, config);
   if (setup) {
-    setup.zones = zones; // Attach all zones for SL/TP calculation
+    setup.zones = zones;
+    setup.setupType = setup.type; // liquidity_sweep_bull or liquidity_sweep_bear
+    return setup;
+  }
+
+  // V2 Priority 2: Trap detection at zones
+  setup = detectTrap(candles, zones, config);
+  if (setup) {
+    setup.zones = zones;
+    setup.setupType = setup.type; // trap_bull or trap_bear
+    return setup;
+  }
+
+  // V2 Priority 3: Breakout-retest-confirmation (high quality)
+  setup = detectBreakoutRetestSetup(candles, zones, config);
+  if (setup) {
+    setup.zones = zones;
+    setup.setupType = 'breakout_retest';
+    return setup;
+  }
+
+  // V2 Priority 4: False break with confirmation
+  setup = detectFalseBreakWithConfirmation(candles, zones, config);
+  if (setup) {
+    setup.zones = zones;
+    setup.setupType = 'false_break_confirmed';
+    return setup;
+  }
+
+  // Original setups (lower priority but still valid)
+  // Try reversal
+  setup = detectReversalSetup(candles, zones, config);
+  if (setup) {
+    setup.zones = zones;
+    setup.setupType = setup.type; // 'reversal'
     return setup;
   }
 
   // Try breakout
   setup = detectBreakoutSetup(candles, zones, config);
   if (setup) {
-    setup.zones = zones; // Attach all zones for SL/TP calculation
+    setup.zones = zones;
+    setup.setupType = setup.type; // 'breakout' or 'breakdown'
     return setup;
   }
 
   // Try retest
   setup = detectRetestSetup(candles, zones, config);
   if (setup) {
-    setup.zones = zones; // Attach all zones for SL/TP calculation
+    setup.zones = zones;
+    setup.setupType = 'retest';
     return setup;
   }
 

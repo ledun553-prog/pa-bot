@@ -2,7 +2,58 @@ const { getDatabase } = require('./db');
 
 /**
  * Manage signal cooldowns to prevent duplicate signals
+ * V2: Added cooldown bypass logic for CHOCH/ATR spike/sweep
  */
+
+/**
+ * Evaluate if cooldown should be bypassed
+ * Bypass reasons:
+ * 1) Strong CHOCH (change of character) suggests reversal
+ * 2) Volatility spike (ATR spike) indicates strong movement
+ * 3) Strong trap/sweep signal
+ * 
+ * @param {Object} signal - Signal object with setup info
+ * @param {Object} config - Configuration
+ * @returns {Object} { bypass: boolean, reason: string }
+ */
+function evaluateCooldownBypass(signal, config = {}) {
+  const bypassOnCHOCH = (config.COOLDOWN_BYPASS_ON_CHOCH !== undefined) 
+    ? config.COOLDOWN_BYPASS_ON_CHOCH 
+    : (process.env.COOLDOWN_BYPASS_ON_CHOCH !== 'false');
+
+  // Reason 1: CHOCH detected
+  if (bypassOnCHOCH && signal.chochEvent) {
+    return {
+      bypass: true,
+      reason: 'CHOCH detected - strong reversal signal'
+    };
+  }
+
+  // Reason 2: ATR spike (volatility surge)
+  if (signal.atrSpike && signal.atrSpike.hasSpike) {
+    return {
+      bypass: true,
+      reason: `ATR spike detected (${signal.atrSpike.ratio.toFixed(2)}x avg)`
+    };
+  }
+
+  // Reason 3: Strong sweep/trap signal
+  const setupType = signal.setup?.setupType || signal.setup?.type;
+  if (setupType && (setupType.includes('sweep') || setupType.includes('trap'))) {
+    const strength = signal.setup.strength || 0;
+    if (strength >= 0.6) {
+      return {
+        bypass: true,
+        reason: `Strong ${setupType} detected (strength: ${(strength * 100).toFixed(0)}%)`
+      };
+    }
+  }
+
+  return {
+    bypass: false,
+    reason: null
+  };
+}
 
 /**
  * Generate cooldown key from signal parameters
@@ -115,5 +166,6 @@ module.exports = {
   addCooldown,
   getRemainingCooldown,
   removeCooldown,
-  getActiveCooldowns
+  getActiveCooldowns,
+  evaluateCooldownBypass
 };
