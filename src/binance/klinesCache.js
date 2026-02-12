@@ -1,10 +1,13 @@
 /**
  * Cache for klines data organized by symbol and timeframe
+ * Supports both closed candles and forming (intrabar) candles
  */
 class KlinesCache {
   constructor() {
     // Structure: { symbol: { timeframe: [klines] } }
     this.cache = {};
+    // Structure: { symbol: { timeframe: formingCandle } }
+    this.formingCandles = {};
   }
 
   /**
@@ -13,8 +16,10 @@ class KlinesCache {
   init(symbol, timeframe, initialKlines = []) {
     if (!this.cache[symbol]) {
       this.cache[symbol] = {};
+      this.formingCandles[symbol] = {};
     }
     this.cache[symbol][timeframe] = initialKlines;
+    this.formingCandles[symbol][timeframe] = null;
     console.log(`[KlinesCache] Initialized ${symbol} ${timeframe} with ${initialKlines.length} candles`);
   }
 
@@ -49,16 +54,64 @@ class KlinesCache {
         candles.shift();
       }
     }
+
+    // Clear forming candle when new closed candle arrives
+    if (newCandle.isClosed) {
+      this.formingCandles[symbol][timeframe] = null;
+    }
   }
 
   /**
-   * Get klines for a symbol/timeframe
+   * Update forming (intrabar) candle
+   * @param {string} symbol
+   * @param {string} timeframe
+   * @param {Object} formingCandle - The candle currently forming
+   */
+  updateFormingCandle(symbol, timeframe, formingCandle) {
+    if (!this.formingCandles[symbol]) {
+      this.formingCandles[symbol] = {};
+    }
+    this.formingCandles[symbol][timeframe] = formingCandle;
+  }
+
+  /**
+   * Get forming (intrabar) candle
+   * @param {string} symbol
+   * @param {string} timeframe
+   * @returns {Object|null} Forming candle or null
+   */
+  getFormingCandle(symbol, timeframe) {
+    if (!this.formingCandles[symbol] || !this.formingCandles[symbol][timeframe]) {
+      return null;
+    }
+    return this.formingCandles[symbol][timeframe];
+  }
+
+  /**
+   * Get klines for a symbol/timeframe (closed candles only)
    */
   get(symbol, timeframe) {
     if (!this.cache[symbol] || !this.cache[symbol][timeframe]) {
       return [];
     }
     return this.cache[symbol][timeframe];
+  }
+
+  /**
+   * Get klines including forming candle (for intrabar analysis)
+   * @param {string} symbol
+   * @param {string} timeframe
+   * @returns {Array} Closed candles + forming candle (if exists)
+   */
+  getWithForming(symbol, timeframe) {
+    const closedCandles = this.get(symbol, timeframe);
+    const formingCandle = this.getFormingCandle(symbol, timeframe);
+    
+    if (formingCandle) {
+      return [...closedCandles, formingCandle];
+    }
+    
+    return closedCandles;
   }
 
   /**
