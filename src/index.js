@@ -89,7 +89,7 @@ class PABot {
     const symbolsEnv = process.env.SYMBOLS || 'BTCUSDT,ETHUSDT';
     this.rawSymbols = symbolsEnv.split(',').map((s) => s.trim()).filter((s) => s);
 
-    const timeframesEnv = process.env.TIMEFRAMES || '1d,4h,1h';
+    const timeframesEnv = process.env.TIMEFRAMES || '4h,1h,15m';
     this.timeframes = timeframesEnv.split(',').map((tf) => tf.trim()).filter((tf) => tf);
 
     console.log('[Config] Symbols:', this.rawSymbols.join(', '));
@@ -98,8 +98,8 @@ class PABot {
 
     // ENTRY-only defaults (informational)
     console.log('[Config] SIGNAL_STAGE_ENABLED:', process.env.SIGNAL_STAGE_ENABLED || 'entry');
-    console.log('[Config] ENTRY_TIMEFRAMES:', process.env.ENTRY_TIMEFRAMES || '1h');
-    console.log('[Config] HTF_TIMEFRAMES:', process.env.HTF_TIMEFRAMES || '4h,1d');
+    console.log('[Config] ENTRY_TIMEFRAMES:', process.env.ENTRY_TIMEFRAMES || '15m,1h');
+    console.log('[Config] HTF_TIMEFRAMES:', process.env.HTF_TIMEFRAMES || '4h,1h');
   }
 
   async fetchInitialData() {

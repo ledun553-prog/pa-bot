@@ -49,7 +49,7 @@ class SignalEngine {
       cooldownMinutes: parseInt(process.env.SIGNAL_COOLDOWN_MINUTES) || 90,
       zoneSLBuffer: parseFloat(process.env.ZONE_SL_BUFFER_PCT) || 0.2,
       minZonesRequired: parseInt(process.env.MIN_ZONES_REQUIRED) || 2,
-      minRR: parseFloat(process.env.MIN_RR) || 1.5,
+      minRR: parseFloat(process.env.MIN_RR) || 1.2,
       antiChaseMaxATR: parseFloat(process.env.ANTI_CHASE_MAX_ATR) || 2.0,
       antiChaseMaxPct: parseFloat(process.env.ANTI_CHASE_MAX_PCT) || 3.0,
       rsiDivergenceBonus: parseInt(process.env.RSI_DIVERGENCE_BONUS) || 10,
