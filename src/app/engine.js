@@ -9,6 +9,7 @@ const { isOnCooldown, addCooldown, evaluateCooldownBypass } = require('../store/
 const { saveSignal } = require('../store/signals');
 const { sendSignal } = require('../notify/telegram');
 const { evaluateChaseRisk } = require('../pa/antiChase');
+const { validateCandles } = require('../utils/validateCandle');
 const fs = require('fs');
 const path = require('path');
 
@@ -122,7 +123,6 @@ class SignalEngine {
       }
 
       // Validate candle data integrity
-      const { validateCandles } = require('../utils/validateCandle');
       const validation = validateCandles(candles, symbol, timeframe);
       if (validation.invalidCount > 0) {
         console.warn(`[Engine] ${symbol} ${timeframe}: ${validation.invalidCount} invalid candles detected and skipped`);

@@ -49,7 +49,14 @@ async function validateSymbols(symbols) {
   allSymbols.forEach(s => symbolInfoMap.set(s.symbol, s));
 
   const validSymbols = allSymbols
-    .filter(s => s.status === 'TRADING' && s.contractType === 'PERPETUAL')
+    .filter(s => {
+      // Must be TRADING status
+      if (s.status !== 'TRADING') return false;
+      // If contractType exists, it must be PERPETUAL (USDT-M perpetual futures)
+      // If contractType doesn't exist, allow it (backwards compatibility)
+      if (s.contractType && s.contractType !== 'PERPETUAL') return false;
+      return true;
+    })
     .map(s => s.symbol);
 
   const validSymbolsSet = new Set(validSymbols);

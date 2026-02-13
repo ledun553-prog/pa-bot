@@ -26,19 +26,19 @@ function validateCandle(candle, symbol = '', timeframe = '') {
   // Validate OHLC are finite numbers
   const { open, high, low, close, volume } = candle;
   
-  if (!isFinite(open) || isNaN(open)) {
+  if (!isFinite(open)) {
     return { valid: false, reason: `Invalid open: ${open}` };
   }
-  if (!isFinite(high) || isNaN(high)) {
+  if (!isFinite(high)) {
     return { valid: false, reason: `Invalid high: ${high}` };
   }
-  if (!isFinite(low) || isNaN(low)) {
+  if (!isFinite(low)) {
     return { valid: false, reason: `Invalid low: ${low}` };
   }
-  if (!isFinite(close) || isNaN(close)) {
+  if (!isFinite(close)) {
     return { valid: false, reason: `Invalid close: ${close}` };
   }
-  if (!isFinite(volume) || isNaN(volume)) {
+  if (!isFinite(volume)) {
     return { valid: false, reason: `Invalid volume: ${volume}` };
   }
 
