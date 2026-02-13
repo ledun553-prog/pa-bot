@@ -134,8 +134,9 @@ nano .env  # or use your preferred editor
 # Symbols to monitor (comma-separated)
 SYMBOLS=BTCUSDT,ETHUSDT,BNBUSDT
 
-# Timeframes to monitor (default: 1d,4h,1h for pro-grade PA)
-TIMEFRAMES=1d,4h,1h
+# Timeframes to monitor (Aggressive preset for more signals: 4h,1h,15m)
+# Note: 15m can generate more noise/false signals but catches more opportunities
+TIMEFRAMES=4h,1h,15m
 
 # Telegram Configuration
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
@@ -155,15 +156,15 @@ SIGNAL_SOURCE_TEXT=Posiya Tú zalo 0763888872
 SIGNAL_COOLDOWN_MINUTES=60
 MIN_SIGNAL_SCORE=70  # Legacy, kept for backward compatibility
 
-# Two-Stage Alerts Configuration (ENTRY-only mode by default)
-ENTRY_TIMEFRAMES=1h             # Timeframe(s) for entry signals
-HTF_TIMEFRAMES=4h,1d            # Higher timeframes for bias
+# Two-Stage Alerts Configuration (Aggressive preset for more signals)
+ENTRY_TIMEFRAMES=15m,1h         # Entry signals on 15m and 1h
+HTF_TIMEFRAMES=4h,1h            # Higher timeframes for bias
 SIGNAL_STAGE_ENABLED=entry      # Only ENTRY stage (100% PA: no premature SETUP alerts)
 SETUP_SCORE_THRESHOLD=50        # Score threshold for SETUP alerts (if enabled)
 ENTRY_SCORE_THRESHOLD=70        # Score threshold for ENTRY alerts
 
-# Risk & Quality Filters
-MIN_RR=1.5                      # Minimum risk-reward ratio
+# Risk & Quality Filters (Aggressive preset)
+MIN_RR=1.2                      # Minimum risk-reward ratio (lower for more signals)
 
 # Anti-Chase Configuration
 ANTI_CHASE_MAX_ATR=2.0          # Max ATR multiple for chase detection
@@ -277,14 +278,28 @@ This allows you to:
 - Only active (TRADING status) symbols are validated
 - Invalid symbols are automatically filtered out
 
-### Timeframe Mode B (Default - Pro-Grade)
+### Timeframe Configuration
 
-Optimized for stability with professional price action analysis:
-- **1d**: Daily trend analysis for HTF bias (Higher Timeframe context)
+**Aggressive Preset (More Signals) - Default:**
+This configuration is optimized for catching more trading opportunities with increased signal frequency:
 - **4h**: Major swing structure and zone identification
 - **1h**: Primary entry/analysis timeframe
+- **15m**: Fast entries for intraday opportunities
 
-**Note**: The 15m timeframe has been removed from the default configuration to focus on higher-quality, higher-timeframe setups that align with professional trading methodologies.
+⚠️ **Note on 15m Timeframe**: The 15m timeframe generates more signals but also comes with increased noise and risk of false signals. It's best suited for active traders who can monitor positions closely. Consider using tighter stop losses and be prepared for more frequent whipsaws.
+
+**Conservative Preset (Fewer, Higher Quality Signals):**
+For traders who prefer stability with fewer but higher-quality setups:
+```env
+TIMEFRAMES=1d,4h,1h
+ENTRY_TIMEFRAMES=1h
+HTF_TIMEFRAMES=4h,1d
+MIN_RR=1.5
+```
+- **1d**: Daily trend analysis for HTF bias (Higher Timeframe context)
+- **4h**: Major swing structure and zone identification  
+- **1h**: Primary entry/analysis timeframe
+- Focus on higher-quality, higher-timeframe setups that align with professional trading methodologies
 
 ### Signal Scoring System (0-145+) - 100% Price Action
 
@@ -634,6 +649,17 @@ If no signals are appearing:
 3. Check logs for setup detection messages
 4. Enable `DRY_RUN=true` to see would-be signals
 5. Ensure sufficient historical data has been loaded
+
+### Too Many Signals / False Signals
+
+If you're getting too many signals or experiencing frequent false signals:
+1. **Using 15m timeframe?** This is expected behavior - 15m generates more signals but with increased noise
+2. **Switch to Conservative preset**: Use `TIMEFRAMES=1d,4h,1h` and `MIN_RR=1.5` for higher quality
+3. **Increase MIN_SIGNAL_SCORE**: Try 75-80 instead of 70
+4. **Increase SIGNAL_COOLDOWN_MINUTES**: Try 90-120 instead of 60
+5. **Remove 15m**: Set `TIMEFRAMES=4h,1h` for medium-frequency signals without 15m noise
+
+**Note on 15m Timeframe**: The 15m timeframe is included in the default aggressive preset for maximum signal frequency. While it catches more opportunities, it also produces more false signals and requires active monitoring. Consider your trading style and risk tolerance when using it.
 
 ### Rate Limiting
 
