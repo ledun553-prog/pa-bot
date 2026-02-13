@@ -42,25 +42,99 @@ async function fetchExchangeInfo() {
  */
 async function validateSymbols(symbols) {
   const exchangeInfo = await fetchExchangeInfo();
-  const validSymbols = exchangeInfo.symbols
-    .filter(s => s.status === 'TRADING')
+  const allSymbols = exchangeInfo.symbols;
+  
+  // Create map of symbol -> info for quick lookups
+  const symbolInfoMap = new Map();
+  allSymbols.forEach(s => symbolInfoMap.set(s.symbol, s));
+
+  const validSymbols = allSymbols
+    .filter(s => {
+      // Must be TRADING status
+      if (s.status !== 'TRADING') return false;
+      // If contractType exists, it must be PERPETUAL (USDT-M perpetual futures)
+      // If contractType doesn't exist, allow it (backwards compatibility)
+      if (s.contractType && s.contractType !== 'PERPETUAL') return false;
+      return true;
+    })
     .map(s => s.symbol);
 
   const validSymbolsSet = new Set(validSymbols);
   const normalized = [];
+  const verboseMode = process.env.VERBOSE_SYMBOL_VALIDATION === 'true';
+  const validationResults = [];
 
   for (const symbol of symbols) {
     const trimmed = symbol.trim().toUpperCase();
+    let status = 'unknown';
+    let reason = '';
+    let normalizedSymbol = trimmed;
     
     // Handle XAUUSD -> XAUUSDT mapping
     if (trimmed === 'XAUUSD' && validSymbolsSet.has('XAUUSDT')) {
-      console.log(`[ExchangeInfo] Mapping ${trimmed} to XAUUSDT`);
+      console.log(`[ExchangeInfo] ✓ Mapping ${trimmed} to XAUUSDT`);
       normalized.push('XAUUSDT');
+      normalizedSymbol = 'XAUUSDT';
+      status = 'accepted (mapped)';
+      reason = 'Mapped from XAUUSD to XAUUSDT';
     } else if (validSymbolsSet.has(trimmed)) {
+      console.log(`[ExchangeInfo] ✓ Symbol ${trimmed} validated`);
       normalized.push(trimmed);
+      status = 'accepted';
+      reason = 'Valid TRADING USDT-M perpetual futures';
     } else {
-      console.warn(`[ExchangeInfo] Symbol ${trimmed} not found or not trading`);
+      // Detailed rejection reason
+      const symbolInfo = symbolInfoMap.get(trimmed);
+      if (!symbolInfo) {
+        status = 'rejected';
+        reason = 'Symbol not found on Binance USDT-M futures';
+        console.warn(`[ExchangeInfo] ✗ Symbol ${trimmed} REJECTED: Not found on exchange`);
+      } else if (symbolInfo.status !== 'TRADING') {
+        status = 'rejected';
+        reason = `Symbol status is ${symbolInfo.status}, not TRADING`;
+        console.warn(`[ExchangeInfo] ✗ Symbol ${trimmed} REJECTED: Status ${symbolInfo.status}`);
+      } else if (symbolInfo.contractType !== 'PERPETUAL') {
+        status = 'rejected';
+        reason = `Contract type is ${symbolInfo.contractType}, not PERPETUAL`;
+        console.warn(`[ExchangeInfo] ✗ Symbol ${trimmed} REJECTED: Contract type ${symbolInfo.contractType}`);
+      } else {
+        status = 'rejected';
+        reason = 'Unknown rejection reason';
+        console.warn(`[ExchangeInfo] ✗ Symbol ${trimmed} REJECTED: Unknown reason`);
+      }
     }
+
+    validationResults.push({
+      requested: symbol,
+      normalized: normalizedSymbol,
+      status,
+      reason
+    });
+  }
+
+  // Print validation table if verbose mode enabled
+  if (verboseMode) {
+    console.log('\n' + '='.repeat(80));
+    console.log('SYMBOL VALIDATION REPORT');
+    console.log('='.repeat(80));
+    console.log(
+      'Requested'.padEnd(15) + 
+      'Normalized'.padEnd(15) + 
+      'Status'.padEnd(20) + 
+      'Reason'
+    );
+    console.log('-'.repeat(80));
+    validationResults.forEach(r => {
+      console.log(
+        r.requested.padEnd(15) +
+        r.normalized.padEnd(15) +
+        r.status.padEnd(20) +
+        r.reason
+      );
+    });
+    console.log('='.repeat(80));
+    console.log(`Total Requested: ${symbols.length}, Accepted: ${normalized.length}, Rejected: ${symbols.length - normalized.length}`);
+    console.log('='.repeat(80) + '\n');
   }
 
   return normalized;

@@ -9,6 +9,7 @@ const { isOnCooldown, addCooldown, evaluateCooldownBypass } = require('../store/
 const { saveSignal } = require('../store/signals');
 const { sendSignal } = require('../notify/telegram');
 const { evaluateChaseRisk } = require('../pa/antiChase');
+const { validateCandles } = require('../utils/validateCandle');
 const fs = require('fs');
 const path = require('path');
 
@@ -110,15 +111,37 @@ class SignalEngine {
   async analyzeForEntry(symbol, timeframe, isIntrabar = false) {
     if (!this.config.entryStageEnabled) return null;
 
+    const diagnosticMode = process.env.DIAGNOSTIC_MODE === 'true';
+
     try {
       const candles = klinesCache.get(symbol, timeframe);
-      if (!candles || candles.length < 100) return null;
+      if (!candles || candles.length < 100) {
+        if (diagnosticMode) {
+          console.log(`[Engine] ${symbol} ${timeframe}: ✗ Insufficient data (${candles ? candles.length : 0} candles, need 100+)`);
+        }
+        return null;
+      }
+
+      // Validate candle data integrity
+      const validation = validateCandles(candles, symbol, timeframe);
+      if (validation.invalidCount > 0) {
+        console.warn(`[Engine] ${symbol} ${timeframe}: ${validation.invalidCount} invalid candles detected and skipped`);
+      }
+      if (validation.valid.length < 100) {
+        console.error(`[Engine] ${symbol} ${timeframe}: Insufficient valid candles (${validation.valid.length}/100)`);
+        return null;
+      }
 
       // Get market-specific config
       const marketConfig = this.getMarketConfig(symbol);
 
-      const setup = detectSetup(candles, marketConfig);
-      if (!setup) return null;
+      const setup = detectSetup(validation.valid, marketConfig);
+      if (!setup) {
+        if (diagnosticMode) {
+          console.log(`[Engine] ${symbol} ${timeframe}: ✗ No setup detected`);
+        }
+        return null;
+      }
 
       console.log(`[Engine] ENTRY: Setup detected: ${symbol} ${timeframe} - ${setup.name} (type: ${setup.setupType})`);
 
@@ -126,22 +149,27 @@ class SignalEngine {
       const htfAlignment = checkHTFAlignment(setup.side, htfBias);
 
       if (!htfAlignment.aligned) {
-        console.log(`[Engine] ENTRY: HTF not aligned for ${symbol} ${timeframe}, skipping ENTRY`);
+        const htfStr = Object.entries(htfBias).map(([tf, bias]) => `${tf}:${bias}`).join(', ');
+        if (diagnosticMode) {
+          console.log(`[Engine] ${symbol} ${timeframe}: ✗ HTF misalignment (setup=${setup.side}, HTF=${htfStr})`);
+        } else {
+          console.log(`[Engine] ENTRY: HTF not aligned for ${symbol} ${timeframe}, skipping ENTRY`);
+        }
         return null;
       }
 
-      const pivotHighs = getRecentPivotHighs(candles, marketConfig.pivotWindow, 10);
-      const pivotLows = getRecentPivotLows(candles, marketConfig.pivotWindow, 10);
-      const divergence = detectRSIDivergence(candles, pivotHighs, pivotLows);
+      const pivotHighs = getRecentPivotHighs(validation.valid, marketConfig.pivotWindow, 10);
+      const pivotLows = getRecentPivotLows(validation.valid, marketConfig.pivotWindow, 10);
+      const divergence = detectRSIDivergence(validation.valid, pivotHighs, pivotLows);
 
       // V2: Detect BOS/CHOCH events
-      const structureEvents = detectRecentStructureEvents(candles, marketConfig.pivotWindow, 10);
+      const structureEvents = detectRecentStructureEvents(validation.valid, marketConfig.pivotWindow, 10);
 
       // V2: Detect ATR spike
-      const atrSpike = detectATRSpike(candles, 14, marketConfig.ATR_SPIKE_RATIO);
+      const atrSpike = detectATRSpike(validation.valid, 14, marketConfig.ATR_SPIKE_RATIO);
 
-      const currentCandle = candles[candles.length - 1];
-      const recentCandles = candles.slice(-20);
+      const currentCandle = validation.valid[validation.valid.length - 1];
+      const recentCandles = validation.valid.slice(-20);
       const avgVolume = recentCandles.reduce((sum, c) => sum + c.volume, 0) / recentCandles.length;
       const volumeRatio = currentCandle.volume / avgVolume;
 
@@ -154,26 +182,39 @@ class SignalEngine {
       }
 
       // V2: Enhanced scoring with structure events
-      const scoreResult = calculateScore(setup, htfAlignment, candles, divergence, structureEvents, marketConfig);
+      const scoreResult = calculateScore(setup, htfAlignment, validation.valid, divergence, structureEvents, marketConfig);
 
       if (scoreResult.score < marketConfig.entryScoreThreshold) {
-        console.log(
-          `[Engine] ENTRY: Score too low (${scoreResult.score} < ${marketConfig.entryScoreThreshold}), skipping`
-        );
+        if (diagnosticMode) {
+          console.log(`[Engine] ${symbol} ${timeframe}: ✗ Score below threshold (${scoreResult.score} < ${marketConfig.entryScoreThreshold})`);
+        } else {
+          console.log(
+            `[Engine] ENTRY: Score too low (${scoreResult.score} < ${marketConfig.entryScoreThreshold}), skipping`
+          );
+        }
         return null;
       }
 
       const levels = calculateLevels(setup, marketConfig.zoneSLBuffer);
 
       if (typeof levels.riskReward1 === 'number' && levels.riskReward1 < marketConfig.minRR) {
-        console.log(
-          `[Engine] ENTRY: R:R too low (${levels.riskReward1.toFixed(2)} < ${marketConfig.minRR}), skipping`
-        );
+        if (diagnosticMode) {
+          console.log(`[Engine] ${symbol} ${timeframe}: ✗ Min RR not met (${levels.riskReward1.toFixed(2)} < ${marketConfig.minRR})`);
+        } else {
+          console.log(
+            `[Engine] ENTRY: R:R too low (${levels.riskReward1.toFixed(2)} < ${marketConfig.minRR}), skipping`
+          );
+        }
         return null;
       }
 
-      const chaseEval = evaluateChaseRisk(candles, setup, marketConfig);
-      if (chaseEval.decision === 'CHASE_NO') return null;
+      const chaseEval = evaluateChaseRisk(validation.valid, setup, marketConfig);
+      if (chaseEval.decision === 'CHASE_NO') {
+        if (diagnosticMode) {
+          console.log(`[Engine] ${symbol} ${timeframe}: ✗ Anti-chase rejected (${chaseEval.reason || 'chase risk'})`);
+        }
+        return null;
+      }
 
       const zoneKey = setup.zone ? setup.zone.key : 'none';
       
@@ -215,6 +256,9 @@ class SignalEngine {
           signal.cooldownBypassed = true;
           signal.bypassReason = bypassEval.reason;
         } else {
+          if (diagnosticMode) {
+            console.log(`[Engine] ${symbol} ${timeframe}: ✗ Cooldown active (zone=${zoneKey})`);
+          }
           return null;
         }
       }
@@ -230,6 +274,7 @@ class SignalEngine {
       return signal;
     } catch (err) {
       console.error(`[Engine] ENTRY: Error analyzing ${symbol} ${timeframe}:`, err.message);
+      console.error(`[Engine] ENTRY: Stack trace:`, err.stack);
       return null;
     }
   }
@@ -253,8 +298,13 @@ class SignalEngine {
   }
 
   async onCandleClosed(symbol, timeframe, candle) {
-    if (this.config.entryTimeframes.includes(timeframe)) {
-      await this.analyzeForEntry(symbol, timeframe, false);
+    try {
+      if (this.config.entryTimeframes.includes(timeframe)) {
+        await this.analyzeForEntry(symbol, timeframe, false);
+      }
+    } catch (err) {
+      console.error(`[Engine] Error in onCandleClosed for ${symbol} ${timeframe}:`, err.message);
+      console.error(`[Engine] Stack trace:`, err.stack);
     }
   }
 

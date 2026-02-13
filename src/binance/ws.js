@@ -64,10 +64,14 @@ class BinanceWebSocket {
         
         // Handle combined stream format
         if (message.stream && message.data) {
-          this.handleKlineMessage(message.data);
+          this.handleKlineMessage(message.data, message.stream);
         }
       } catch (err) {
         console.error('[WS] Error parsing message:', err.message);
+        // Try to log the raw data if it's not too large
+        if (data && data.length < 500) {
+          console.error('[WS] Raw message:', data.toString());
+        }
       }
     });
 
@@ -87,44 +91,51 @@ class BinanceWebSocket {
 
   /**
    * Handle incoming kline message
+   * @param {Object} data - Kline data
+   * @param {string} streamName - Stream name for error logging
    */
-  handleKlineMessage(data) {
-    const k = data.k;
-    const symbol = data.s;
-    const timeframe = k.i;
-    
-    const candle = {
-      openTime: k.t,
-      open: parseFloat(k.o),
-      high: parseFloat(k.h),
-      low: parseFloat(k.l),
-      close: parseFloat(k.c),
-      volume: parseFloat(k.v),
-      closeTime: k.T,
-      quoteVolume: parseFloat(k.q),
-      trades: k.n,
-      takerBuyBaseVolume: parseFloat(k.V),
-      takerBuyQuoteVolume: parseFloat(k.Q),
-      isClosed: k.x
-    };
+  handleKlineMessage(data, streamName = 'unknown') {
+    try {
+      const k = data.k;
+      const symbol = data.s;
+      const timeframe = k.i;
+      
+      const candle = {
+        openTime: k.t,
+        open: parseFloat(k.o),
+        high: parseFloat(k.h),
+        low: parseFloat(k.l),
+        close: parseFloat(k.c),
+        volume: parseFloat(k.v),
+        closeTime: k.T,
+        quoteVolume: parseFloat(k.q),
+        trades: k.n,
+        takerBuyBaseVolume: parseFloat(k.V),
+        takerBuyQuoteVolume: parseFloat(k.Q),
+        isClosed: k.x
+      };
 
-    if (k.x) {
-      // Closed candle
-      klinesCache.updateCandle(symbol, timeframe, candle);
-      console.log(`[WS] Closed candle: ${symbol} ${timeframe} @ ${candle.close}`);
-      
-      // Trigger closed candle callback
-      if (this.onCandleClosedCallback) {
-        this.onCandleClosedCallback(symbol, timeframe, candle);
+      if (k.x) {
+        // Closed candle
+        klinesCache.updateCandle(symbol, timeframe, candle);
+        console.log(`[WS] Closed candle: ${symbol} ${timeframe} @ ${candle.close}`);
+        
+        // Trigger closed candle callback
+        if (this.onCandleClosedCallback) {
+          this.onCandleClosedCallback(symbol, timeframe, candle);
+        }
+      } else {
+        // Forming candle (intrabar update)
+        klinesCache.updateFormingCandle(symbol, timeframe, candle);
+        
+        // Trigger intrabar callback (if registered)
+        if (this.onIntrabarUpdateCallback) {
+          this.onIntrabarUpdateCallback(symbol, timeframe, candle);
+        }
       }
-    } else {
-      // Forming candle (intrabar update)
-      klinesCache.updateFormingCandle(symbol, timeframe, candle);
-      
-      // Trigger intrabar callback (if registered)
-      if (this.onIntrabarUpdateCallback) {
-        this.onIntrabarUpdateCallback(symbol, timeframe, candle);
-      }
+    } catch (err) {
+      console.error(`[WS] Error handling kline message from stream '${streamName}':`, err.message);
+      console.error(`[WS] Data keys:`, data ? Object.keys(data).join(', ') : 'null');
     }
   }
 

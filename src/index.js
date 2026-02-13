@@ -105,18 +105,53 @@ class PABot {
   async fetchInitialData() {
     console.log('[Init] Fetching initial historical data...');
 
+    const disabledSymbols = new Set();
+    const maxRetries = 3;
+
     for (const symbol of this.symbols) {
       for (const timeframe of this.timeframes) {
-        try {
-          console.log(`[Init] Fetching ${symbol} ${timeframe}...`);
-          const klines = await fetchKlines(symbol, timeframe, 500);
-          klinesCache.init(symbol, timeframe, klines);
-          console.log(`[Init] ✓ ${symbol} ${timeframe}: ${klines.length} candles`);
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        } catch (err) {
-          console.error(`[Init] ✗ Failed to fetch ${symbol} ${timeframe}:`, err.message);
+        let retries = 0;
+        let success = false;
+
+        while (retries < maxRetries && !success) {
+          try {
+            console.log(`[Init] Fetching ${symbol} ${timeframe}${retries > 0 ? ` (retry ${retries}/${maxRetries})` : ''}...`);
+            const klines = await fetchKlines(symbol, timeframe, 500);
+            klinesCache.init(symbol, timeframe, klines);
+            console.log(`[Init] ✓ ${symbol} ${timeframe}: ${klines.length} candles`);
+            success = true;
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          } catch (err) {
+            retries++;
+            console.error(`[Init] ✗ Failed to fetch ${symbol} ${timeframe} (attempt ${retries}/${maxRetries}):`, err.message);
+            
+            if (retries >= maxRetries) {
+              disabledSymbols.add(symbol);
+              console.error(`[Init] ✗✗ ${symbol} ${timeframe}: MAX RETRIES REACHED - Symbol/timeframe disabled`);
+            } else {
+              // Wait before retry with exponential backoff
+              await new Promise((resolve) => setTimeout(resolve, 1000 * retries));
+            }
+          }
         }
       }
+    }
+
+    // Remove disabled symbols from active symbols list
+    if (disabledSymbols.size > 0) {
+      console.warn('\n' + '='.repeat(60));
+      console.warn('⚠️  WARNING: Some symbols could not be initialized:');
+      disabledSymbols.forEach(sym => console.warn(`   - ${sym}`));
+      console.warn('These symbols will be removed from monitoring.');
+      console.warn('='.repeat(60) + '\n');
+
+      this.symbols = this.symbols.filter(s => !disabledSymbols.has(s));
+      
+      if (this.symbols.length === 0) {
+        throw new Error('All symbols failed to initialize. Cannot continue.');
+      }
+
+      console.log(`[Init] Active symbols after filtering: ${this.symbols.join(', ')}`);
     }
 
     console.log('[Init] Initial data fetch complete');
