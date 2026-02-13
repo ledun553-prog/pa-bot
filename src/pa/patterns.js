@@ -461,7 +461,7 @@ function detectReversalPattern(candles, config = {}) {
   // Check 3-candle patterns first (if we have enough candles)
   if (candles.length >= 3) {
     // Check Three White Soldiers
-    if (enabledPatterns.threeWhiteSoldiers !== false) {
+    if (enabledPatterns.threeWhiteSoldiers) {
       const threeWhiteSoldiers = detectThreeWhiteSoldiers(candles);
       if (threeWhiteSoldiers.isThreeWhiteSoldiers) {
         return threeWhiteSoldiers;
@@ -469,7 +469,7 @@ function detectReversalPattern(candles, config = {}) {
     }
 
     // Check Three Black Crows
-    if (enabledPatterns.threeBlackCrows !== false) {
+    if (enabledPatterns.threeBlackCrows) {
       const threeBlackCrows = detectThreeBlackCrows(candles);
       if (threeBlackCrows.isThreeBlackCrows) {
         return threeBlackCrows;
@@ -477,7 +477,7 @@ function detectReversalPattern(candles, config = {}) {
     }
 
     // Check morning star
-    if (enabledPatterns.morningStar !== false) {
+    if (enabledPatterns.morningStar) {
       const morningStar = detectMorningStar(candles);
       if (morningStar.isMorningStar) {
         return morningStar;
@@ -485,7 +485,7 @@ function detectReversalPattern(candles, config = {}) {
     }
 
     // Check evening star
-    if (enabledPatterns.eveningStar !== false) {
+    if (enabledPatterns.eveningStar) {
       const eveningStar = detectEveningStar(candles);
       if (eveningStar.isEveningStar) {
         return eveningStar;
@@ -495,7 +495,7 @@ function detectReversalPattern(candles, config = {}) {
 
   // Check 2-candle patterns
   // Check tweezer
-  if (enabledPatterns.tweezer !== false) {
+  if (enabledPatterns.tweezer) {
     const tweezer = detectTweezer(prevCandle, currentCandle);
     if (tweezer.isTweezer) {
       return tweezer;
@@ -503,7 +503,7 @@ function detectReversalPattern(candles, config = {}) {
   }
 
   // Check engulfing
-  if (enabledPatterns.engulfing !== false) {
+  if (enabledPatterns.engulfing) {
     const engulfing = detectEngulfing(prevCandle, currentCandle);
     if (engulfing.isEngulfing) {
       return engulfing;
@@ -511,7 +511,7 @@ function detectReversalPattern(candles, config = {}) {
   }
 
   // Check Harami
-  if (enabledPatterns.harami !== false) {
+  if (enabledPatterns.harami) {
     const harami = detectHarami(prevCandle, currentCandle);
     if (harami.isHarami) {
       return harami;
@@ -519,7 +519,7 @@ function detectReversalPattern(candles, config = {}) {
   }
 
   // Check inside bar
-  if (enabledPatterns.insideBar !== false) {
+  if (enabledPatterns.insideBar) {
     const insideBar = detectInsideBar(prevCandle, currentCandle);
     if (insideBar.isInsideBar) {
       return insideBar;
@@ -528,7 +528,7 @@ function detectReversalPattern(candles, config = {}) {
 
   // Check single candle patterns
   // Check pin bar
-  if (enabledPatterns.pinBar !== false) {
+  if (enabledPatterns.pinBar) {
     const pinBar = detectPinBar(currentCandle);
     if (pinBar.isPinBar) {
       return pinBar;
@@ -536,7 +536,7 @@ function detectReversalPattern(candles, config = {}) {
   }
 
   // Check doji
-  if (enabledPatterns.doji !== false) {
+  if (enabledPatterns.doji) {
     const doji = detectDoji(currentCandle);
     if (doji.isDoji) {
       return doji;

@@ -180,12 +180,34 @@ function getPatternWeight(patternName) {
     'Three Black Crows': 13
   };
 
-  // Try to get from environment variables
-  const envKey = patternName.toUpperCase().replace(/\s+/g, '_');
-  const envWeight = process.env[`PATTERN_${envKey}_WEIGHT`];
+  // Normalize pattern name for env lookup
+  // Strip directional prefixes and convert to env format
+  let envKey = patternName;
   
-  if (envWeight) {
-    return parseFloat(envWeight);
+  // Map pattern names to their base forms for env lookup
+  const patternMap = {
+    'Hammer': 'PINBAR',
+    'Shooting Star': 'PINBAR',
+    'Bullish Engulfing': 'ENGULFING',
+    'Bearish Engulfing': 'ENGULFING',
+    'Bullish Harami': 'HARAMI',
+    'Bearish Harami': 'HARAMI',
+    'Inside Bar': 'INSIDE_BAR',
+    'Morning Star': 'MORNING_STAR',
+    'Evening Star': 'EVENING_STAR',
+    'Tweezer Bottom': 'TWEEZER',
+    'Tweezer Top': 'TWEEZER',
+    'Doji': 'DOJI',
+    'Three White Soldiers': 'THREE_WHITE_SOLDIERS',
+    'Three Black Crows': 'THREE_BLACK_CROWS'
+  };
+  
+  const mappedKey = patternMap[patternName];
+  if (mappedKey) {
+    const envWeight = process.env[`PATTERN_${mappedKey}_WEIGHT`];
+    if (envWeight) {
+      return parseFloat(envWeight);
+    }
   }
 
   // Return default weight or fallback
