@@ -27,21 +27,44 @@ const PATTERN_TRANSLATIONS = {
   'Shooting Star': 'Sao Băng (Shooting Star)',
   'Bullish Engulfing': 'Nhấn chìm tăng (Bullish Engulfing)',
   'Bearish Engulfing': 'Nhấn chìm giảm (Bearish Engulfing)',
+  'Bullish Harami': 'Harami tăng (Bullish Harami)',
+  'Bearish Harami': 'Harami giảm (Bearish Harami)',
+  'Inside Bar': 'Nến Inside Bar',
+  'Morning Star': 'Sao Mai (Morning Star)',
+  'Evening Star': 'Sao Hôm (Evening Star)',
+  'Tweezer Bottom': 'Tweezer Đáy',
+  'Tweezer Top': 'Tweezer Đỉnh',
+  'Three White Soldiers': 'Ba Chiến Binh (Three White Soldiers)',
+  'Three Black Crows': 'Ba Con Quạ (Three Black Crows)',
   Doji: 'Doji'
 };
 
 function translatePattern(patternName, patternType) {
   if (!patternName) return 'Không xác định';
 
+  // Direct match in translation table
   if (PATTERN_TRANSLATIONS[patternName]) return PATTERN_TRANSLATIONS[patternName];
 
+  // Fallback patterns for partial matches
   if (patternName.includes('Hammer')) return PATTERN_TRANSLATIONS.Hammer;
   if (patternName.includes('Shooting Star')) return PATTERN_TRANSLATIONS['Shooting Star'];
+  if (patternName.includes('Harami')) {
+    return patternType === 'bullish'
+      ? PATTERN_TRANSLATIONS['Bullish Harami']
+      : PATTERN_TRANSLATIONS['Bearish Harami'];
+  }
   if (patternName.includes('Engulfing')) {
     return patternType === 'bullish'
       ? PATTERN_TRANSLATIONS['Bullish Engulfing']
       : PATTERN_TRANSLATIONS['Bearish Engulfing'];
   }
+  if (patternName.includes('Inside Bar')) return PATTERN_TRANSLATIONS['Inside Bar'];
+  if (patternName.includes('Morning Star')) return PATTERN_TRANSLATIONS['Morning Star'];
+  if (patternName.includes('Evening Star')) return PATTERN_TRANSLATIONS['Evening Star'];
+  if (patternName.includes('Tweezer Bottom')) return PATTERN_TRANSLATIONS['Tweezer Bottom'];
+  if (patternName.includes('Tweezer Top')) return PATTERN_TRANSLATIONS['Tweezer Top'];
+  if (patternName.includes('Three White Soldiers')) return PATTERN_TRANSLATIONS['Three White Soldiers'];
+  if (patternName.includes('Three Black Crows')) return PATTERN_TRANSLATIONS['Three Black Crows'];
   if (patternName.includes('Doji')) return PATTERN_TRANSLATIONS.Doji;
 
   return patternName;
@@ -173,11 +196,11 @@ function generateTradeReasons(signal) {
     }
   }
 
-  // Volume (always show if significant)
+  // Volume (bonus factor - 100% Price Action)
   if (typeof volumeRatio === 'number') {
-    if (volumeRatio >= 2.0) reasons.push(`Volume cực mạnh (${formatNumber(volumeRatio, 1)}x TB)`);
-    else if (volumeRatio >= 1.5) reasons.push(`Volume tăng (${formatNumber(volumeRatio, 1)}x TB)`);
-    else if (volumeRatio < 0.8) reasons.push(`Volume yếu (${formatNumber(volumeRatio, 1)}x TB)`);
+    if (volumeRatio >= 2.0) reasons.push(`Volume cực mạnh (${formatNumber(volumeRatio, 1)}x TB) - bonus tích cực`);
+    else if (volumeRatio >= 1.5) reasons.push(`Volume tăng (${formatNumber(volumeRatio, 1)}x TB) - bonus tích cực`);
+    else if (volumeRatio < 0.8) reasons.push(`Volume yếu (${formatNumber(volumeRatio, 1)}x TB) - không ảnh hưởng PA`);
   }
 
   // RSI divergence (optional bonus)
@@ -319,7 +342,7 @@ function formatSignalMessage(signal) {
   if (reasons.length) {
     for (const r of reasons) msg += `✅ ${escapeHtml(r)}\n`;
   } else {
-    msg += `✅ Price Action + Volume (tổng hợp)\n`;
+    msg += `✅ 100% Price Action\n`;
   }
   msg += `\n`;
 
@@ -328,7 +351,8 @@ function formatSignalMessage(signal) {
 
   msg += `━━━━━━━━━━━━━━━━━━━━\n`;
   msg += `🕐 ${escapeHtml(formatTime(signal.timestamp))}\n`;
-  msg += `📱 Nguồn ${escapeHtml(sourceText)}`;
+  msg += `📱 Nguồn ${escapeHtml(sourceText)}\n`;
+  msg += `<i>🎯 100% Price Action - Volume/RSI là bonus</i>`;
 
   return msg;
 }
