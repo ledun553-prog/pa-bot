@@ -134,16 +134,18 @@ function calculateSetupScoreV2(setup) {
   } else if (setupType === 'reversal') {
     score += 12; // Reversals at key levels are high quality
     
-    // Extra bonus for strong pattern
+    // Extra bonus for strong pattern with configurable weights
     if (setup.pattern && setup.pattern.strength) {
-      score += setup.pattern.strength * 8;
+      const patternWeight = getPatternWeight(setup.pattern.name);
+      score += setup.pattern.strength * patternWeight;
     }
   } else if ((setupType === 'breakout' || setupType === 'breakdown') && setup.isTrue) {
     score += 15; // True breakouts with volume
   } else if (setupType === 'retest') {
     score += 12; // Retests are high quality
     if (setup.pattern) {
-      score += 5;
+      const patternWeight = getPatternWeight(setup.pattern.name);
+      score += setup.pattern.strength * (patternWeight * 0.6); // 60% of pattern weight for retests
     }
   } else if (setupType === 'false_breakout' || setupType === 'false_breakdown') {
     score += 10; // False breakout fades
@@ -152,6 +154,42 @@ function calculateSetupScoreV2(setup) {
   }
 
   return Math.min(score, 35);
+}
+
+/**
+ * Get pattern weight from configuration
+ * @param {string} patternName - Name of the pattern
+ * @returns {number} Weight value for scoring
+ */
+function getPatternWeight(patternName) {
+  // Default weights
+  const defaultWeights = {
+    'Hammer': 8,
+    'Shooting Star': 8,
+    'Bullish Engulfing': 10,
+    'Bearish Engulfing': 10,
+    'Bullish Harami': 9,
+    'Bearish Harami': 9,
+    'Inside Bar': 7,
+    'Morning Star': 12,
+    'Evening Star': 12,
+    'Tweezer Bottom': 9,
+    'Tweezer Top': 9,
+    'Doji': 5,
+    'Three White Soldiers': 13,
+    'Three Black Crows': 13
+  };
+
+  // Try to get from environment variables
+  const envKey = patternName.toUpperCase().replace(/\s+/g, '_');
+  const envWeight = process.env[`PATTERN_${envKey}_WEIGHT`];
+  
+  if (envWeight) {
+    return parseFloat(envWeight);
+  }
+
+  // Return default weight or fallback
+  return defaultWeights[patternName] || 8;
 }
 
 /**
@@ -533,5 +571,6 @@ module.exports = {
   calculateStructureScore,
   calculateSweepScore,
   calculateRetestScore,
-  calculateFalseBreakScore
+  calculateFalseBreakScore,
+  getPatternWeight
 };

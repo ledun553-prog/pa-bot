@@ -40,8 +40,11 @@ function detectReversalSetup(candles, zones, config = {}) {
   const currentCandle = candles[candles.length - 1];
   const currentPrice = currentCandle.close;
 
-  // Check for reversal pattern
-  const pattern = detectReversalPattern(candles);
+  // Build pattern config from environment
+  const patternConfig = buildPatternConfig();
+
+  // Check for reversal pattern with configuration
+  const pattern = detectReversalPattern(candles, patternConfig);
   if (!pattern) return null;
 
   // Check if near support (for bullish reversal) or resistance (for bearish reversal)
@@ -72,6 +75,27 @@ function detectReversalSetup(candles, zones, config = {}) {
   }
 
   return null;
+}
+
+/**
+ * Build pattern configuration from environment variables
+ * @returns {Object} Pattern configuration
+ */
+function buildPatternConfig() {
+  return {
+    enabledPatterns: {
+      pinBar: (process.env.PATTERN_PINBAR_ENABLED || 'true') === 'true',
+      engulfing: (process.env.PATTERN_ENGULFING_ENABLED || 'true') === 'true',
+      harami: (process.env.PATTERN_HARAMI_ENABLED || 'true') === 'true',
+      insideBar: (process.env.PATTERN_INSIDE_BAR_ENABLED || 'true') === 'true',
+      morningStar: (process.env.PATTERN_MORNING_STAR_ENABLED || 'true') === 'true',
+      eveningStar: (process.env.PATTERN_EVENING_STAR_ENABLED || 'true') === 'true',
+      tweezer: (process.env.PATTERN_TWEEZER_ENABLED || 'true') === 'true',
+      doji: (process.env.PATTERN_DOJI_ENABLED || 'true') === 'true',
+      threeWhiteSoldiers: (process.env.PATTERN_THREE_WHITE_SOLDIERS_ENABLED || 'true') === 'true',
+      threeBlackCrows: (process.env.PATTERN_THREE_BLACK_CROWS_ENABLED || 'true') === 'true'
+    }
+  };
 }
 
 /**
@@ -204,6 +228,9 @@ function detectRetestSetup(candles, zones, config = {}) {
   // Look for recent breakout (in last 10-20 candles)
   const recentCandles = candles.slice(-20);
   
+  // Build pattern config
+  const patternConfig = buildPatternConfig();
+  
   // Check if we're retesting a broken resistance (now support)
   for (const zone of zones.resistance) {
     const aboveZone = currentPrice > zone.center;
@@ -213,7 +240,7 @@ function detectRetestSetup(candles, zones, config = {}) {
       // Check if there was a breakout in recent history
       const hadBreakout = recentCandles.some(c => c.close > zone.upper);
       if (hadBreakout) {
-        const pattern = detectReversalPattern(candles);
+        const pattern = detectReversalPattern(candles, patternConfig);
         if (pattern && pattern.type === 'bullish') {
           return {
             type: 'retest',
@@ -236,7 +263,7 @@ function detectRetestSetup(candles, zones, config = {}) {
     if (belowZone && touching) {
       const hadBreakdown = recentCandles.some(c => c.close < zone.lower);
       if (hadBreakdown) {
-        const pattern = detectReversalPattern(candles);
+        const pattern = detectReversalPattern(candles, patternConfig);
         if (pattern && pattern.type === 'bearish') {
           return {
             type: 'retest',
@@ -341,5 +368,6 @@ module.exports = {
   detectRetestSetup,
   detectSetup,
   calculateAverageVolume,
-  hasVolumeSpark
+  hasVolumeSpark,
+  buildPatternConfig
 };
