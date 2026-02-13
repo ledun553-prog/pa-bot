@@ -286,7 +286,7 @@ This configuration is optimized for catching more trading opportunities with inc
 - **1h**: Primary entry/analysis timeframe
 - **15m**: Fast entries for intraday opportunities
 
-⚠️ **Note on 15m Timeframe**: The 15m timeframe generates more signals but also comes with increased noise and risk of false signals. It's best suited for active traders who can monitor positions closely. Consider using tighter stop losses and be prepared for more frequent whipsaws.
+⚠️ **Note on 15m Timeframe**: The 15m timeframe generates more signals but also comes with increased noise and risk of false signals. Expect 2-3x more signals compared to using only 1h timeframe. It's best suited for active traders who can monitor positions closely (checking every 1-2 hours recommended). Consider using tighter stop losses and be prepared for more frequent whipsaws.
 
 **Conservative Preset (Fewer, Higher Quality Signals):**
 For traders who prefer stability with fewer but higher-quality setups:
@@ -659,7 +659,7 @@ If you're getting too many signals or experiencing frequent false signals:
 4. **Increase SIGNAL_COOLDOWN_MINUTES**: Try 90-120 instead of 60
 5. **Remove 15m**: Set `TIMEFRAMES=4h,1h` for medium-frequency signals without 15m noise
 
-**Note on 15m Timeframe**: The 15m timeframe is included in the default aggressive preset for maximum signal frequency. While it catches more opportunities, it also produces more false signals and requires active monitoring. Consider your trading style and risk tolerance when using it.
+**Note on 15m Timeframe**: The 15m timeframe is included in the default aggressive preset for maximum signal frequency. Expect approximately 2-3x more signals compared to using only 1h timeframe. While it catches more opportunities, it also produces more false signals and requires active monitoring (check positions every 1-2 hours recommended). Consider your trading style and risk tolerance when using it.
 
 ### Rate Limiting
 

@@ -43,6 +43,8 @@ Signals will now be sent to your Telegram!
 
 ## Quick Configuration Tips
 
+**Note**: The aggressive preset is the default configuration. If you prefer fewer signals with higher quality, see the conservative preset below.
+
 ### Aggressive Settings (More Signals) - Default Preset
 This is the default configuration optimized for more frequent trading opportunities:
 ```env
@@ -54,7 +56,7 @@ HTF_TIMEFRAMES=4h,1h
 MIN_RR=1.2
 ```
 
-⚠️ **15m Timeframe Note**: Using 15m generates more signals but increases noise and false signal risk. Best for active traders who can monitor positions closely. Be prepared for more whipsaws and consider tighter stop losses.
+⚠️ **15m Timeframe Note**: Using 15m generates more signals (expect 2-3x more than 1h-only) but increases noise and false signal risk. Best for active traders who can monitor positions closely (every 1-2 hours). Be prepared for more whipsaws and consider tighter stop losses.
 
 **Impact**: More frequent signals, catches intraday opportunities, requires active monitoring.
 
