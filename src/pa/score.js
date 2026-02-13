@@ -134,16 +134,18 @@ function calculateSetupScoreV2(setup) {
   } else if (setupType === 'reversal') {
     score += 12; // Reversals at key levels are high quality
     
-    // Extra bonus for strong pattern
+    // Extra bonus for strong pattern with configurable weights
     if (setup.pattern && setup.pattern.strength) {
-      score += setup.pattern.strength * 8;
+      const patternWeight = getPatternWeight(setup.pattern.name);
+      score += setup.pattern.strength * patternWeight;
     }
   } else if ((setupType === 'breakout' || setupType === 'breakdown') && setup.isTrue) {
     score += 15; // True breakouts with volume
   } else if (setupType === 'retest') {
     score += 12; // Retests are high quality
     if (setup.pattern) {
-      score += 5;
+      const patternWeight = getPatternWeight(setup.pattern.name);
+      score += setup.pattern.strength * (patternWeight * 0.6); // 60% of pattern weight for retests
     }
   } else if (setupType === 'false_breakout' || setupType === 'false_breakdown') {
     score += 10; // False breakout fades
@@ -152,6 +154,64 @@ function calculateSetupScoreV2(setup) {
   }
 
   return Math.min(score, 35);
+}
+
+/**
+ * Get pattern weight from configuration
+ * @param {string} patternName - Name of the pattern
+ * @returns {number} Weight value for scoring
+ */
+function getPatternWeight(patternName) {
+  // Default weights
+  const defaultWeights = {
+    'Hammer': 8,
+    'Shooting Star': 8,
+    'Bullish Engulfing': 10,
+    'Bearish Engulfing': 10,
+    'Bullish Harami': 9,
+    'Bearish Harami': 9,
+    'Inside Bar': 7,
+    'Morning Star': 12,
+    'Evening Star': 12,
+    'Tweezer Bottom': 9,
+    'Tweezer Top': 9,
+    'Doji': 5,
+    'Three White Soldiers': 13,
+    'Three Black Crows': 13
+  };
+
+  // Normalize pattern name for env lookup
+  // Strip directional prefixes and convert to env format
+  let envKey = patternName;
+  
+  // Map pattern names to their base forms for env lookup
+  const patternMap = {
+    'Hammer': 'PINBAR',
+    'Shooting Star': 'PINBAR',
+    'Bullish Engulfing': 'ENGULFING',
+    'Bearish Engulfing': 'ENGULFING',
+    'Bullish Harami': 'HARAMI',
+    'Bearish Harami': 'HARAMI',
+    'Inside Bar': 'INSIDE_BAR',
+    'Morning Star': 'MORNING_STAR',
+    'Evening Star': 'EVENING_STAR',
+    'Tweezer Bottom': 'TWEEZER',
+    'Tweezer Top': 'TWEEZER',
+    'Doji': 'DOJI',
+    'Three White Soldiers': 'THREE_WHITE_SOLDIERS',
+    'Three Black Crows': 'THREE_BLACK_CROWS'
+  };
+  
+  const mappedKey = patternMap[patternName];
+  if (mappedKey) {
+    const envWeight = process.env[`PATTERN_${mappedKey}_WEIGHT`];
+    if (envWeight) {
+      return parseFloat(envWeight);
+    }
+  }
+
+  // Return default weight or fallback
+  return defaultWeights[patternName] || 8;
 }
 
 /**
@@ -533,5 +593,6 @@ module.exports = {
   calculateStructureScore,
   calculateSweepScore,
   calculateRetestScore,
-  calculateFalseBreakScore
+  calculateFalseBreakScore,
+  getPatternWeight
 };

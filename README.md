@@ -1,49 +1,98 @@
-# PA-Bot: Price Action + Volume Signal Bot
+# PA-Bot: 100% Price Action Signal Bot
 
-**Signal-only trading alert bot for Binance USDT-M futures** focusing on Price Action and Volume analysis with RSI divergence detection.
+**Signal-only trading alert bot for Binance USDT-M futures** focusing on **pure Price Action analysis** with comprehensive candlestick pattern recognition and market structure.
 
 ⚠️ **DISCLAIMER**: This bot provides trading signals for educational purposes only. It does NOT execute trades automatically. All trading decisions and their consequences are the sole responsibility of the user. Cryptocurrency trading carries substantial risk of loss.
+
+## 🎯 100% Price Action Strategy
+
+This bot follows a **pure price action methodology** without relying on volume or indicators as required conditions. Instead, it focuses on:
+
+- **Market Structure Analysis**: HH/HL (uptrend), LH/LL (downtrend) detection
+- **Support & Resistance Zones**: Dynamic S/R identification from swing points
+- **Breakout & Retest**: True breakout detection and retest confirmation
+- **Candlestick Patterns**: 10+ reversal patterns for entry signals
+- **Trend Following**: HTF bias alignment for high-probability setups
+
+**Volume and RSI** are used as **scoring bonuses** only - they enhance signal quality but never block signals.
 
 ## Features
 
 ### Core Features
 
 - 📊 **Multi-Timeframe Analysis**: Monitors 1d, 4h, 1h timeframes (configurable)
-- 🎯 **Price Action Focus**: Swing/pivot detection, market structure analysis, support/resistance zones
-- 📈 **Volume Analysis**: Volume spike detection and climax identification
-- 🔄 **RSI Divergence**: Detects bullish/bearish divergences (bonus scoring)
-- 🎨 **Multiple Setup Types**: Reversals, breakouts, retests, and false breakout fades
+- 🎯 **100% Price Action Focus**: Pure price action without volume/indicator requirements
+- 🕯️ **10+ Candlestick Patterns**: Comprehensive pattern library (see below)
+- 📈 **Market Structure**: HH/HL, LH/LL detection, BOS/CHOCH identification
+- 🎨 **Multiple Setup Types**: Reversals, breakouts, retests, liquidity sweeps, false break fades
 - ⚡ **Real-Time WebSocket**: Live data from Binance with auto-reconnect
-- 📱 **Telegram Alerts**: Formatted signals with all key information
+- 📱 **Telegram Alerts**: Formatted signals with all key information in Vietnamese
 - 🗄️ **SQLite Storage**: Persistent signal history and cooldown management
 - 🚫 **Deduplication**: Smart cooldown system to prevent spam
-- 🏆 **Signal Scoring**: 0-110 score based on multiple factors
+- 🏆 **Signal Scoring**: 0-145+ score based on multiple factors (configurable)
 
-### NEW: Advanced Signal Engine
+### Candlestick Patterns (100% Price Action)
 
-- 🎚️ **Two-Stage Alerts**: 
-  - **SETUP**: Early warning when reversal/continuation setup is forming (intrabar detection)
+The bot detects and scores these reversal patterns:
+
+**Single Candle Patterns:**
+- 🔨 **Pin Bar / Hammer** - Long lower wick rejection (bullish)
+- 🌟 **Shooting Star** - Long upper wick rejection (bearish)
+- ⚖️ **Doji** - Indecision candle (neutral, context-dependent)
+
+**Two Candle Patterns:**
+- 🟢 **Bullish Engulfing** - Large bullish candle engulfs previous bearish
+- 🔴 **Bearish Engulfing** - Large bearish candle engulfs previous bullish
+- 🟩 **Bullish Harami** - Small bullish inside large bearish (reversal signal)
+- 🟥 **Bearish Harami** - Small bearish inside large bullish (reversal signal)
+- 📦 **Inside Bar** - Consolidation awaiting breakout
+- 🔧 **Tweezer Bottom** - Double bottom with similar lows (bullish reversal)
+- 🔧 **Tweezer Top** - Double top with similar highs (bearish reversal)
+
+**Three Candle Patterns:**
+- ⭐ **Morning Star** - Bullish reversal at support (star gap down + bullish confirmation)
+- 🌙 **Evening Star** - Bearish reversal at resistance (star gap up + bearish confirmation)
+- ⬆️⬆️⬆️ **Three White Soldiers** - Strong bullish continuation (3 consecutive bullish candles)
+- ⬇️⬇️⬇️ **Three Black Crows** - Strong bearish continuation (3 consecutive bearish candles)
+
+**Pattern Configuration:** Each pattern can be enabled/disabled and has configurable weight for scoring.
+
+### NEW: Advanced Signal Engine (100% Price Action)
+
+- 🎚️ **Entry-Only Mode** (default):
   - **ENTRY**: Confirmed signal with clear entry/SL/TP, ready for action
+  - Requires HTF alignment and minimum score threshold (default: 70)
+  - Optional SETUP stage for early warnings (disabled by default)
+  
 - 🚦 **Anti-Chase Logic**: Prevents late entries with intelligent chase detection
   - ATR-based distance checks
-  - Volume climax detection
+  - Volume climax detection (bonus, not required)
   - Momentum analysis
   - Micro-structure analysis (CHoCH/BOS)
-- 🎭 **Enhanced Patterns**: 
+  
+- 🎭 **Enhanced Patterns** (10+ patterns):
   - Pin bar (hammer/shooting star)
-  - Engulfing patterns
+  - Engulfing patterns (bullish/bearish)
+  - **Harami patterns** (bullish/bearish) - NEW
   - Inside bar + break
   - Morning/evening star
   - Tweezer top/bottom
   - Doji patterns
-- 📊 **Configurable Scoring**: 
+  - **Three White Soldiers** - NEW
+  - **Three Black Crows** - NEW
+  
+- 📊 **Configurable Scoring** (100% Price Action): 
   - Separate thresholds for SETUP (50) and ENTRY (70)
+  - **Pattern-based scoring** with configurable weights
   - RSI divergence as bonus (not required)
-  - Price action and volume confirmation required
+  - Volume as bonus (not required) - **Volume does NOT block signals**
+  - Price action and structure are primary factors
+  
 - ✅ **Quality Filters**:
   - Minimum R:R ratio (default 1.5)
   - HTF alignment requirement for ENTRY
-  - Volume confirmation option
+  - Pattern strength evaluation
+  
 - 📈 **Backtesting Tool**: Evaluate signal quality on historical data
   - Per-symbol and per-timeframe reporting
   - Win rate, avg R:R, and expectancy calculation
@@ -102,15 +151,15 @@ TELEGRAM_SEND_CONNECTION_TEST=false
 # Optional: Customize signal source footer (default: "Posiya Tú zalo 0763888872")
 SIGNAL_SOURCE_TEXT=Posiya Tú zalo 0763888872
 
-# Signal Configuration
+# Signal Configuration (100% Price Action)
 SIGNAL_COOLDOWN_MINUTES=60
 MIN_SIGNAL_SCORE=70  # Legacy, kept for backward compatibility
 
-# Two-Stage Alerts Configuration
+# Two-Stage Alerts Configuration (ENTRY-only mode by default)
 ENTRY_TIMEFRAMES=1h             # Timeframe(s) for entry signals
 HTF_TIMEFRAMES=4h,1d            # Higher timeframes for bias
-SIGNAL_STAGE_ENABLED=setup,entry  # Enable both stages
-SETUP_SCORE_THRESHOLD=50        # Score threshold for SETUP alerts
+SIGNAL_STAGE_ENABLED=entry      # Only ENTRY stage (100% PA: no premature SETUP alerts)
+SETUP_SCORE_THRESHOLD=50        # Score threshold for SETUP alerts (if enabled)
 ENTRY_SCORE_THRESHOLD=70        # Score threshold for ENTRY alerts
 
 # Risk & Quality Filters
@@ -120,15 +169,46 @@ MIN_RR=1.5                      # Minimum risk-reward ratio
 ANTI_CHASE_MAX_ATR=2.0          # Max ATR multiple for chase detection
 ANTI_CHASE_MAX_PCT=3.0          # Max percentage move for chase detection
 
-# Scoring Configuration
-RSI_DIVERGENCE_BONUS=10         # Bonus points for RSI divergence
-REQUIRE_VOLUME_CONFIRMATION=true  # Require volume spike for ENTRY
+# 100% Price Action Scoring Configuration
+RSI_DIVERGENCE_BONUS=10         # Bonus points for RSI divergence (optional)
+REQUIRE_VOLUME_CONFIRMATION=false  # Volume is BONUS only, NOT required (100% PA)
+
+# Pattern Detection Configuration (100% Price Action)
+# Enable/disable specific candlestick patterns (default: all enabled)
+PATTERN_PINBAR_ENABLED=true
+PATTERN_ENGULFING_ENABLED=true
+PATTERN_HARAMI_ENABLED=true
+PATTERN_INSIDE_BAR_ENABLED=true
+PATTERN_MORNING_STAR_ENABLED=true
+PATTERN_EVENING_STAR_ENABLED=true
+PATTERN_TWEEZER_ENABLED=true
+PATTERN_DOJI_ENABLED=true
+PATTERN_THREE_WHITE_SOLDIERS_ENABLED=true
+PATTERN_THREE_BLACK_CROWS_ENABLED=true
+
+# Pattern Scoring Weights (base points for each pattern type)
+# These multiply with pattern strength (0-1) for final score contribution
+PATTERN_PINBAR_WEIGHT=8
+PATTERN_ENGULFING_WEIGHT=10
+PATTERN_HARAMI_WEIGHT=9
+PATTERN_INSIDE_BAR_WEIGHT=7
+PATTERN_MORNING_STAR_WEIGHT=12
+PATTERN_EVENING_STAR_WEIGHT=12
+PATTERN_TWEEZER_WEIGHT=9
+PATTERN_DOJI_WEIGHT=5
+PATTERN_THREE_WHITE_SOLDIERS_WEIGHT=13
+PATTERN_THREE_BLACK_CROWS_WEIGHT=13
 
 # Price Action Configuration
 PIVOT_WINDOW=5
 ZONE_LOOKBACK=100
 ZONE_TOLERANCE_PCT=0.5
-VOLUME_SPIKE_THRESHOLD=1.5
+VOLUME_SPIKE_THRESHOLD=1.5      # Used for scoring bonus only
+
+# Breakout/Retest Parameters (100% Price Action)
+BREAKOUT_TOLERANCE_PCT=0.3      # Tolerance for "touching" a zone
+BREAKOUT_CONFIRMATION_CANDLES=2 # Candles to confirm breakout
+BREAKOUT_MOVE_PCT=0.5           # % move to confirm breakout
 
 # Zone-based SL/TP Configuration
 ZONE_SL_BUFFER_PCT=0.2
@@ -160,6 +240,37 @@ LOG_LEVEL=info
 
 ## Configuration
 
+### 100% Price Action Pattern Configuration
+
+You can enable/disable individual candlestick patterns and configure their scoring weights:
+
+**Pattern Enable/Disable:**
+```env
+# Set to false to disable a specific pattern
+PATTERN_HARAMI_ENABLED=true
+PATTERN_THREE_WHITE_SOLDIERS_ENABLED=true
+# ... etc
+```
+
+**Pattern Scoring Weights:**
+```env
+# Adjust the base score contribution for each pattern
+PATTERN_HARAMI_WEIGHT=9              # Harami patterns worth 9 points max
+PATTERN_THREE_WHITE_SOLDIERS_WEIGHT=13  # Strong continuation patterns worth more
+PATTERN_DOJI_WEIGHT=5                # Doji less significant (indecision)
+```
+
+**How Pattern Scoring Works:**
+1. Pattern is detected with strength value (0-1)
+2. Base weight is retrieved from config (default or env variable)
+3. Final contribution = Weight × Strength
+4. Example: Bullish Harami with 0.8 strength = 9 × 0.8 = 7.2 points
+
+This allows you to:
+- Disable patterns you don't trust
+- Adjust importance of each pattern type
+- Fine-tune scoring to match your trading style
+
 ### Symbol Mapping
 
 - **XAUUSD**: Automatically mapped to **XAUUSDT** if it exists on Binance Futures
@@ -175,49 +286,58 @@ Optimized for stability with professional price action analysis:
 
 **Note**: The 15m timeframe has been removed from the default configuration to focus on higher-quality, higher-timeframe setups that align with professional trading methodologies.
 
-### Signal Scoring System (0-110)
+### Signal Scoring System (0-145+) - 100% Price Action
 
-Signals are scored based on multiple factors:
+Signals are scored based on multiple factors. **Volume and RSI are bonus points only** - they never block signals.
 
 | Factor | Max Points | Description | Required |
 |--------|------------|-------------|----------|
 | HTF Alignment | 30 | 1d & 4h structure alignment with signal direction | Yes |
-| Setup Quality | 30 | Reversal patterns, true breakouts, retests | Yes |
+| Setup Quality | 35 | Reversal patterns, true breakouts, retests | Yes |
 | Candle Strength | 25 | Directional momentum of current candle | Yes |
-| Volume Context | 15 | Volume spike and comparison to average | Yes |
-| RSI Divergence | 10* | Bullish/bearish divergence confluence | Bonus |
+| Volume Context | 15 | Volume spike and comparison to average | **Bonus** |
+| RSI Divergence | 10* | Bullish/bearish divergence confluence | **Bonus** |
+| BOS/CHOCH | 15 | Market structure events | **Bonus** |
+| Sweep/Trap | 12 | Liquidity sweep strength | **Bonus** |
+| Retest Quality | 10 | Breakout retest confirmation | **Bonus** |
+| False Break | 8 | False breakout fade quality | **Bonus** |
 
 **Score Thresholds:**
-- **SETUP Alert**: 50+ points (early warning, heads-up)
 - **ENTRY Signal**: 70+ points (confirmed, action-ready)
-- **Configurable**: Can adjust thresholds via SETUP_SCORE_THRESHOLD and ENTRY_SCORE_THRESHOLD
+- **SETUP Alert** (optional): 50+ points (early warning, if enabled)
+- **Configurable**: Can adjust thresholds via ENTRY_SCORE_THRESHOLD and SETUP_SCORE_THRESHOLD
 
-*\*RSI divergence is a bonus, not required. Configurable via RSI_DIVERGENCE_BONUS (default: 10)*
+**Pattern Weights:** Each candlestick pattern contributes to the Setup Quality score based on:
+- Pattern type (configurable weight, e.g., Morning Star = 12 points)
+- Pattern strength (0-1, based on quality of pattern formation)
+- Final contribution = Weight × Strength
 
-### Two-Stage Alert System
+Example: A Morning Star with 0.8 strength = 12 × 0.8 = 9.6 points added to setup score.
 
-**SETUP Stage (Intrabar Detection)**:
+### Two-Stage Alert System (ENTRY-only by default)
+
+**SETUP Stage (Optional, disabled by default)**:
 - Detects forming setups in real-time
 - Lower score threshold (default 50)
 - Early warning before candle close
 - Allows preparation time
 - Does not require HTF alignment
 
-**ENTRY Stage (Confirmed)**:
+**ENTRY Stage (Default)**:
 - Only after clear trigger/confirmation
 - Higher score threshold (default 70)
 - Includes entry/SL/TP levels
 - Requires HTF alignment
 - Anti-chase logic applied
 - Minimum R:R check (default 1.5)
-- Optional volume confirmation
+- **Volume is bonus, NOT required** (100% Price Action)
 
 ### Anti-Chase Logic
 
 Prevents late entries by evaluating:
 
 1. **Distance Checks**: Price movement vs ATR and percentage
-2. **Volume Analysis**: Spike vs climax detection
+2. **Volume Analysis**: Spike vs climax detection (bonus scoring)
 3. **Momentum**: Consecutive candles and acceleration/slowdown
 4. **Micro-Structure**: CHoCH (Change of Character) and BOS (Break of Structure)
 
@@ -375,9 +495,9 @@ node scripts/backtest.js --symbol BTCUSDT --timeframe 1h --period 7d --detailed
 - `--min-score <N>` - Minimum signal score threshold
 - `--detailed` - Show detailed signal logs
 
-## Signal Format
+## Signal Format (100% Price Action)
 
-### SETUP Alert (Early Warning)
+### SETUP Alert (Early Warning) - Optional
 
 ```
 ⚠️ SETUP - CẢNH BÁO SỚM ⚠️
@@ -391,6 +511,8 @@ BTCUSDT | 1h
 🛑 SL dự kiến: ~43100.00
 🎯 TP1 dự kiến: ~43600.00
 
+🕯️ Mô hình: Bullish Harami (độ mạnh 78%)
+
 ⚠️ Chờ xác nhận trước khi vào lệnh!
 
 ━━━ ĐỘ TIN CẬY ━━━
@@ -398,7 +520,7 @@ BTCUSDT | 1h
 ...
 ```
 
-### ENTRY Signal (Confirmed)
+### ENTRY Signal (Confirmed) - Default Mode
 
 ```
 📈 TÍN HIỆU 🟢 MUA 📈
@@ -415,53 +537,30 @@ TP2:    43900.00000000 (3.0R) [kháng cự]
 
 ✅ Khung lớn: 1D 🟢 Tăng | 4H 🟢 Tăng
 
-🟢 LONG | BTCUSDT | 4H
-Đảo chiều
-━━━━━━━━━━━━━━━━━━━━
+🕯️ Mô hình nến: Three White Soldiers (độ mạnh 85%)
 
-📋 KẾ HOẠCH GIAO DỊCH
-Entry: 42500.50000000
-SL: 42000.00000000 (1.18%)
-TP1: 43500.00000000 (2.35%) [2.0R]
-TP2: 44500.00000000 (4.70%) [4.0R]
-TP3: 45500.00000000 (7.06%) [6.0R]
+✅ Anti-Chase: Good entry conditions
 
-Risk/Reward: 2R | WR: 65% | EV: 1.30
+━━━ TẠI SAO VÀO KÈO ━━━
+  • Pattern: Three White Soldiers (strength: 85%)
+  • Volume: 1.85x average (BONUS - không bắt buộc)
+  • HTF Structure: HH/HL uptrend
+  • Zone: support @ 43250.50
 
-Điểm tín hiệu: 82/100
+🕐 2026-02-13T14:30:00.000Z
 
-💡 Lý do vào kèo
-✅ Xu hướng lớn TĂNG rõ ràng (1D tăng, 4H tăng)
-✅ Mô hình nến Búa (Hammer) (độ mạnh 85%)
-✅ Đảo chiều tại vùng hỗ trợ mạnh
-✅ Volume CỰC MẠNH (2.3x TB) - tín hiệu rất tích cực
-✅ Phân kỳ tăng - tín hiệu đảo chiều mạnh
-
-━━━━━━━━━━━━━━━━━━━━
-🕐 13:53 12/02/2026
-📱 Posiya Tú zalo 0763888872
+--------------------
+PA-Bot | 100% Price Action Analysis
 ```
 
 **Message Features:**
 - **Header**: Side (🟢 LONG / 🔴 SHORT), symbol, timeframe, setup type in Vietnamese
 - **Trade Plan**: Entry, SL, and up to 3 TPs with percentages and risk/reward ratios
-- **Metrics**: RR (Risk/Reward), WR (Win Rate), EV (Expected Value) when available
-- **Signal Score**: 0-100 score indicating signal quality
+- **Pattern Display**: Shows detected candlestick pattern name and strength percentage
+- **Signal Score**: 0-145+ score indicating signal quality
 - **Reasons**: Vietnamese bullet points explaining the trade setup
+- **100% PA Note**: Volume shown as bonus, not requirement
 - **Footer**: Timestamp and customizable source text (configurable via `SIGNAL_SOURCE_TEXT`)
-
-✅ Anti-Chase: Good entry conditions
-
-━━━ TẠI SAO VÀO KÈO ━━━
-  • Pattern: Hammer (strength: 75%)
-  • Volume: 1.85x average (SPIKE)
-  • RSI Divergence: Bullish divergence...
-  • Zone: support @ 43250.50
-
-🕐 2026-02-11T14:30:00.000Z
-
---------------------
-PA-Bot | Price Action + Volume Analysis
 ```
 
 ## Project Structure
@@ -545,6 +644,53 @@ Binance has rate limits. The bot:
 
 ## Development
 
+### 100% Price Action Methodology
+
+This bot implements a pure price action trading approach where **price movement and market structure are the primary decision factors**. Here's how it works:
+
+**Core Principles:**
+
+1. **Price is King**: All decisions based on price structure, patterns, and levels
+2. **No Indicator Dependencies**: Volume and RSI are bonus factors, never requirements
+3. **Market Structure First**: HH/HL (uptrend) and LH/LL (downtrend) guide direction
+4. **Pattern Confirmation**: Multiple candlestick patterns validate reversals
+
+**How Signals Are Generated:**
+
+```
+1. Market Structure Analysis (HTF)
+   ↓
+2. Swing Point & Zone Detection
+   ↓
+3. Setup Detection (Reversal/Breakout/Retest)
+   ↓
+4. Pattern Recognition (10+ patterns)
+   ↓
+5. Scoring (HTF + Setup + Candle + Bonuses)
+   ↓
+6. Threshold Check (≥70 points)
+   ↓
+7. Risk Management (R:R ≥1.5)
+   ↓
+8. Anti-Chase Filter
+   ↓
+9. Signal Generated ✓
+```
+
+**Volume Role (Bonus Only):**
+- Adds 0-15 points to score if present
+- Strong volume = higher confidence
+- **Weak/no volume does NOT block signal**
+- Pure PA signals can score 70-130+ without volume
+
+**Pattern Weighting:**
+Each pattern has a configurable weight reflecting its reliability:
+- Strong reversal patterns (Morning/Evening Star, Three Soldiers/Crows): 12-13 points
+- Classic patterns (Engulfing, Harami): 9-10 points  
+- Pin bars: 8 points
+- Inside bar: 7 points (needs breakout)
+- Doji: 5 points (indecision)
+
 ### Adding New Indicators
 
 Create a new file in `src/indicators/` and import it in `src/app/engine.js`.
@@ -591,6 +737,21 @@ For issues and questions:
 
 ## Changelog
 
+### v2.0.0 (2026-02-13) - 100% Price Action Upgrade
+- **BREAKING**: Changed to 100% Price Action methodology
+- **NEW**: Volume no longer blocks signals (scoring bonus only)
+- **NEW**: Added Harami bullish/bearish pattern detection
+- **NEW**: Added Three White Soldiers pattern
+- **NEW**: Added Three Black Crows pattern
+- **NEW**: Configurable pattern enable/disable system
+- **NEW**: Configurable pattern scoring weights
+- **IMPROVED**: Pattern detection now uses configuration
+- **IMPROVED**: Scoring system enhanced with pattern weights
+- **IMPROVED**: Documentation updated for 100% PA strategy
+- **FIXED**: Bug in engulfing pattern detection
+- **DEFAULT**: REQUIRE_VOLUME_CONFIRMATION now false by default
+- **DEFAULT**: ENTRY-only mode (SETUP stage disabled by default)
+
 ### v1.0.0 (2026-02-11)
 - Initial release
 - Multi-timeframe price action analysis
@@ -604,4 +765,4 @@ For issues and questions:
 
 ---
 
-**Remember**: This bot provides signals only. Always do your own research and never risk more than you can afford to lose.
+**Remember**: This bot provides signals only using 100% Price Action methodology. Volume and indicators are bonus factors, not requirements. Always do your own research and never risk more than you can afford to lose.

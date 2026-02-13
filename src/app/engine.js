@@ -53,7 +53,7 @@ class SignalEngine {
       antiChaseMaxATR: parseFloat(process.env.ANTI_CHASE_MAX_ATR) || 2.0,
       antiChaseMaxPct: parseFloat(process.env.ANTI_CHASE_MAX_PCT) || 3.0,
       rsiDivergenceBonus: parseInt(process.env.RSI_DIVERGENCE_BONUS) || 10,
-      requireVolumeConfirmation: (process.env.REQUIRE_VOLUME_CONFIRMATION || 'true') === 'true',
+      requireVolumeConfirmation: (process.env.REQUIRE_VOLUME_CONFIRMATION || 'false') === 'true', // Changed default to false for 100% PA
       setupStageEnabled: stagesEnabled.includes('setup'),
       entryStageEnabled: stagesEnabled.includes('entry'),
       entryTimeframes,
@@ -145,11 +145,12 @@ class SignalEngine {
       const avgVolume = recentCandles.reduce((sum, c) => sum + c.volume, 0) / recentCandles.length;
       const volumeRatio = currentCandle.volume / avgVolume;
 
+      // Volume is now a scoring bonus, not a blocker (100% Price Action)
       if (marketConfig.requireVolumeConfirmation && volumeRatio < marketConfig.volumeSpikeThreshold) {
         console.log(
-          `[Engine] ENTRY: Insufficient volume (${volumeRatio.toFixed(2)}x < ${marketConfig.volumeSpikeThreshold}x), skipping`
+          `[Engine] ENTRY: Low volume (${volumeRatio.toFixed(2)}x < ${marketConfig.volumeSpikeThreshold}x) - will reduce score but not block signal`
         );
-        return null;
+        // Note: Volume contributes to score but does NOT block signal
       }
 
       // V2: Enhanced scoring with structure events
