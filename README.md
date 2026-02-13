@@ -629,11 +629,81 @@ If database errors occur:
 ### No Signals Generated
 
 If no signals are appearing:
-1. Check `MIN_SIGNAL_SCORE` - try lowering it temporarily
-2. Verify symbols are valid and trading
-3. Check logs for setup detection messages
-4. Enable `DRY_RUN=true` to see would-be signals
-5. Ensure sufficient historical data has been loaded
+1. Check `ENTRY_SCORE_THRESHOLD` (default 70) - try lowering it temporarily to 50-60
+2. Verify symbols are valid and trading on Binance USDT-M futures
+3. Enable `DIAGNOSTIC_MODE=true` to see detailed rejection reasons for each candle
+4. Check logs for setup detection and rejection messages
+5. Enable `DRY_RUN=true` to see would-be signals
+6. Ensure sufficient historical data has been loaded (100+ candles per symbol/timeframe)
+7. Check HTF alignment - signals require higher timeframe confirmation
+
+**Using Diagnostic Mode:**
+```bash
+# Add to .env or run with:
+DIAGNOSTIC_MODE=true npm start
+```
+
+This will print concise rejection reasons like:
+```
+[Engine] BTCUSDT 1h: ✗ Insufficient data (95 candles, need 100+)
+[Engine] ETHUSDT 1h: ✗ No setup detected
+[Engine] BNBUSDT 1h: ✗ HTF misalignment (setup=LONG, HTF=4h:SHORT)
+[Engine] XRPUSDT 1h: ✗ Score below threshold (62 < 70)
+[Engine] ADAUSDT 1h: ✗ Anti-chase rejected (too extended)
+```
+
+### Symbol Cannot Be Analyzed
+
+If you see errors that specific symbols (e.g., TRB, TRIA) cannot be analyzed:
+
+**1. Check Symbol Availability:**
+- Not all symbols are available on Binance USDT-M perpetual futures
+- Some symbols may be on spot markets only, or on different contract types
+- Enable verbose validation to see detailed reasons:
+
+```bash
+# Add to .env or run with:
+VERBOSE_SYMBOL_VALIDATION=true npm start
+```
+
+This will print a validation table on startup:
+```
+================================================================================
+SYMBOL VALIDATION REPORT
+================================================================================
+Requested       Normalized      Status              Reason
+--------------------------------------------------------------------------------
+BTCUSDT         BTCUSDT         accepted            Valid TRADING USDT-M perpetual futures
+TRBUSDT         TRBUSDT         rejected            Symbol not found on Binance USDT-M futures
+TRIAUSDT        TRIAUSDT        rejected            Contract type is DELIVERY, not PERPETUAL
+XAUUSD          XAUUSDT         accepted (mapped)   Mapped from XAUUSD to XAUUSDT
+================================================================================
+Total Requested: 4, Accepted: 2, Rejected: 2
+================================================================================
+```
+
+**2. Common Rejection Reasons:**
+- **Symbol not found**: Symbol doesn't exist on USDT-M futures (may be spot-only or use different ticker)
+- **Status not TRADING**: Symbol is paused, delisted, or in pre-launch
+- **Contract type not PERPETUAL**: Symbol is a delivery contract, not perpetual futures
+
+**3. How to Find Valid Symbols:**
+- Visit https://www.binance.com/en/futures/BTCUSDT and check available perpetual contracts
+- Look for symbols with "USDT Perpetual" label
+- Use the verbose validation mode to see which of your symbols are valid
+
+**4. TRB/TRIA Case Study:**
+Some symbols that exist on Binance spot may not be available as USDT-M perpetual futures:
+- **TRB**: Check if TRBUSDT perpetual exists (may be available as delivery futures instead)
+- **TRIA**: May not be available on futures markets at all
+- Bot will automatically skip unavailable symbols and continue monitoring valid ones
+
+**5. Monitoring Changes:**
+The bot will:
+- Log clear rejection reasons during startup validation
+- Remove invalid symbols from the monitoring list automatically
+- Continue running with remaining valid symbols
+- Retry failed symbol data fetches up to 3 times before disabling
 
 ### Rate Limiting
 
